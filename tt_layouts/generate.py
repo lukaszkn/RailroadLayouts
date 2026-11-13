@@ -3,6 +3,7 @@
 from collections import Counter
 from functools import lru_cache
 from itertools import product
+import logging
 from math import ceil
 from random import Random
 
@@ -12,6 +13,7 @@ from .inventory import repartition
 from .model import Layout, equivalent, validate
 
 BUFFER = Step("83100", "a-stop")
+logger = logging.getLogger(__name__)
 
 
 def backwards(moves):
@@ -553,6 +555,7 @@ def generate(catalog, cfg):
     candidates = []
     sectional = {code: limit for code, limit in cfg.parts.items() if catalog[code].kind in ("straight", "curve")}
     for mode in modes:
+        logger.info("Searching for %s track layouts", mode)
         shelves = {}
         for source in mode_sources[mode]:
             for candidate in source(stock):
@@ -567,6 +570,8 @@ def generate(catalog, cfg):
                 # Preserve representatives for each distinct topology.
                 estimate = _estimate(candidate, cfg)
                 shelves.setdefault(candidate.family, []).append((estimate, rng.random(), candidate))
+        logger.info("Checking %s layouts from a pool of %d candidates",
+                    mode, sum(len(shelf) for shelf in shelves.values()))
         valid = []
         unique = {}
         for shelf in shelves.values():
@@ -607,6 +612,7 @@ def generate(catalog, cfg):
                 valid.extend(items.pop(0) for items in families.values() if items)
         else:
             valid = [layout for _, _, layout in valid]
+        logger.info("Found %d distinct valid %s layouts", len(valid), mode)
         candidates.append(valid)
     if cfg.mode != "mixed":
         return candidates[0][:cfg.count], rejected

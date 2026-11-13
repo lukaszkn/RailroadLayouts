@@ -4,12 +4,15 @@ from collections import Counter
 from dataclasses import asdict
 import csv
 import json
+import logging
 from math import cos, radians, sin
 from pathlib import Path
 from shutil import copyfile
 import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger(__name__)
 
 COLORS = {
     "main": "#193c4b",
@@ -243,6 +246,7 @@ def _write_outputs(layouts, rejected, cfg, directory):
     all_drawings.mkdir()
     rows = []
     for number, layout in enumerate(layouts, 1):
+        logger.info("Exporting plan %d (%s)", number, layout.title)
         stem = f"{number:02d}-{layout.mode}"
         folder = directory / stem
         folder.mkdir()

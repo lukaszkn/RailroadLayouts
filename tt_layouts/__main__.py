@@ -1,6 +1,7 @@
 """Generate and export track plans from the command line."""
 
 import argparse
+import logging
 from pathlib import Path
 import sys
 
@@ -8,6 +9,8 @@ from .config import MODES, STRATEGIES, read_config
 from .export import write_run
 from .generate import generate
 from .geometry import load_catalog
+
+logger = logging.getLogger(__name__)
 
 
 def main(argv=None):
@@ -34,7 +37,10 @@ def main(argv=None):
             raise ValueError(f"Output already exists at {output}. Choose a new --output directory.")
         catalog = load_catalog(catalog_path)
         cfg = read_config(config_path, catalog, {k:v for k,v in args.items() if v is not None})
+        logger.info("Generating up to %d track plans for a %g × %g cm board",
+                    cfg.count, cfg.width_cm, cfg.height_cm)
         layouts, rejected = generate(catalog, cfg)
+        logger.info("Exporting %d of %d requested plans", len(layouts), cfg.count)
         write_run(layouts, rejected, cfg, output)
     except (OSError, KeyError, TypeError, ValueError) as exc:
         parser.exit(2, f"Error: {exc}\n")
@@ -49,4 +55,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     sys.exit(main())
