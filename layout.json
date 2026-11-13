@@ -8,6 +8,7 @@
   "seed": 42,
   "vehicle_group": "B",
   "edge_margin_mm": 35,
+  "require_connected_tracks": true,
   "parts": {
     "83100": {"enabled": true, "max_count": 5},
     "83331": {"enabled": true},

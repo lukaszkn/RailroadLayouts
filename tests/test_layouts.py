@@ -46,11 +46,27 @@ class LayoutTests(unittest.TestCase):
         self.assertFalse(joint_fits(Pose(), Pose(0.3, 0.1, 180.11)))
         self.assertTrue(joint_fits(Pose(), Pose(0.5, 0.15, 180.1)))
 
+    def test_require_connected_tracks_config(self):
+        with TemporaryDirectory() as root:
+            path = Path(root) / "layout.json"
+            for settings, expected in (({}, True), ({"require_connected_tracks": True}, True),
+                                       ({"require_connected_tracks": False}, False)):
+                with self.subTest(settings=settings):
+                    path.write_text(json.dumps(settings), encoding="utf-8")
+                    self.assertIs(read_config(path, self.catalog).require_connected_tracks, expected)
+            for value in (None, 0, 1, "true", "false", [], {}):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps({"require_connected_tracks": value}), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "require_connected_tracks must be a boolean"):
+                        read_config(path, self.catalog)
+
     def test_sample_mode_mix_and_inventory(self):
+        self.assertTrue(self.config.require_connected_tracks)
         self.assertEqual(Counter(p.mode for p in self.examples),
                          {"single": 2, "passing": 4, "double": 4})
-        self.assertTrue(any(p.inventory["83212"] for p in self.examples))
         for plan in self.examples:
+            if plan.mode == "double":
+                self.assertGreater(plan.inventory["83212"], 0)
             self.assertEqual(plan.inventory["83332"], 0)
             self.assertLessEqual(plan.inventory["83100"], 5)
             self.assertTrue(all(g[0] <= .500001 and abs(g[1]) <= .150001 and abs(g[2]) <= .100001
@@ -104,6 +120,35 @@ class LayoutTests(unittest.TestCase):
             self.assertLessEqual(plan.inventory["83106"], 4)
             self.assertGreaterEqual(plan.inventory["83112"], 3)
             self.assertGreaterEqual(plan.parallel_mm, 250)
+
+    def test_double_without_crossover_requires_opt_out(self):
+        cfg = self.config_for(mode="double", count=1, parts={"83212": Limit(enabled=False)})
+        reason = "track network is disconnected"
+        plans, rejected = generate(self.catalog, cfg)
+        self.assertEqual(plans, [])
+        self.assertGreater(rejected[reason], 0)
+        with TemporaryDirectory() as root:
+            path = Path(root) / "plans"
+            write_run(plans, rejected, cfg, path)
+            report = json.loads((path / "run.json").read_text())
+            self.assertIs(report["config"]["require_connected_tracks"], True)
+            self.assertEqual(report["shortfall"], 1)
+            self.assertIn(reason, report["rejections"])
+
+        plans, _ = generate(self.catalog, replace(cfg, require_connected_tracks=False))
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(plans[0].inventory["83212"], 0)
+        self.assertEqual(validate(plans[0], cfg), reason)
+
+    def test_fixed_diamond_does_not_connect_its_routes(self):
+        layout = Layout(self.catalog, "single", "diamond", "Fixed crossing", "")
+        crossing, = layout.lay(Pose(), (Step("83161"),))
+        buffer = (Step("83100", "a-stop"),)
+        for move in (crossing, layout.branch(crossing, "c", "d")):
+            before, = layout.lay(layout.port(move), buffer)
+            after, = layout.lay(layout.port(move, True), buffer)
+            layout.add(move.entry, (before.reversed(), move, after), "spur")
+        self.assertEqual(validate(layout, self.config), "track network is disconnected")
 
     def test_smaller_board_long_train_and_no_stock(self):
         for changes in (

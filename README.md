@@ -2,6 +2,8 @@
 
 Generate to-scale assembly drawings for a flat model railroad using fixed-length Tillig TT Modellgleis. The included [10 example plans](examples/index.md) fit a 160 × 120 cm board and use the 25 cm train-length setting, MOROP vehicle group B, and DCC.
 
+The checked-in examples are from an earlier run. `05-double` and `10-double` have independent loops.
+
 ## Run it
 
 From this directory, with [uv](https://docs.astral.sh/uv/) installed:
@@ -25,6 +27,7 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 | `width_cm`, `height_cm` | 160, 120 | Baseboard dimensions. A plan can rotate 90° to fit. |
 | `count` | 10 | Number of distinct alternatives requested |
 | `mode` | `mixed` | `single` for a main line with freight switching, `passing` for two trains to meet, or `double` for simultaneous running on two closed routes |
+| `require_connected_tracks` | `true` | Requires a traversable connection between all tracks in each plan. Set to `false` to allow independent loops. |
 | `strategy` | `balanced` | Diversifies operating formations. `longest` ranks by continuous lap, `shunting` by total usable freight storage, and `fewest_parts` by track piece count. |
 | `train_length_cm` | 25 | Complete train including locomotive. Both station tracks must hold this length in passing mode. Double mode requires at least this much parallel running track. |
 | `vehicle_group` | B | MOROP vehicle group A, B, or C for radius and clearance |

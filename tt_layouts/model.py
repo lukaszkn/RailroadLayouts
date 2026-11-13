@@ -1,6 +1,6 @@
 """Assemble pieces and validate the resulting physical and operational routes."""
 
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from itertools import combinations, groupby, pairwise
 
@@ -140,6 +140,7 @@ def equivalent(first, second):
 
 
 def _check_joints(layout):
+    layout.joints.clear()
     joints = {}
     used = set()
     for track in layout.tracks:
@@ -168,6 +169,31 @@ def _check_joints(layout):
         if piece.stop and (i, "stop") not in used:
             return "unreachable buffer stop"
     return None
+
+
+def _tracks_connected(layout):
+    neighbors = defaultdict(set)
+    for i, piece in enumerate(layout.pieces):
+        for port in piece.ports:
+            neighbors.setdefault((i, port), set())
+        if piece.part.stop:
+            neighbors.setdefault((i, "stop"), set())
+        # Include switchable routes even when the named tracks use only the through routes.
+        for route in piece.part.routes.values():
+            first, second = (i, route.start), (i, route.end)
+            neighbors[first].add(second)
+            neighbors[second].add(first)
+    for first, second, _ in layout.joints:
+        neighbors[first].add(second)
+        neighbors[second].add(first)
+
+    pending = [next(iter(neighbors))] if neighbors else []
+    visited = set(pending)
+    while pending:
+        reachable = neighbors[pending.pop()] - visited
+        visited.update(reachable)
+        pending.extend(reachable)
+    return len(visited) == len(neighbors)
 
 
 def _intersections(layout):
@@ -319,7 +345,12 @@ def validate(layout, cfg):
         return "minimum curve radius for selected rolling stock"
     if not layout.fit(cfg):
         return "board size or edge margin"
-    failure = _check_joints(layout) or _intersections(layout)
+    failure = _check_joints(layout)
+    if failure:
+        return failure
+    if cfg.require_connected_tracks and not _tracks_connected(layout):
+        return "track network is disconnected"
+    failure = _intersections(layout)
     if failure:
         return failure
     loops = [track for track in layout.tracks if track.kind == "loop"]

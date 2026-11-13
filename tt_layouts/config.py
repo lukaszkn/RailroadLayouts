@@ -32,6 +32,7 @@ class Config:
     vehicle_group: str = "B"
     edge_margin_mm: float = 35
     parts: dict[str, Limit] = field(default_factory=dict)
+    require_connected_tracks: bool = True
 
     @property
     def width(self):
@@ -85,6 +86,8 @@ def read_config(path, catalog, overrides=None):
         raise ValueError("edge_margin_mm must leave at least 12 mm from centerline to the board edge")
     if type(result.count) is not int or result.count < 1 or type(result.seed) is not int:
         raise ValueError("count must be a positive integer and seed must be an integer")
+    if type(result.require_connected_tracks) is not bool:
+        raise ValueError("require_connected_tracks must be a boolean")
     if result.mode not in MODES or result.strategy not in STRATEGIES or result.vehicle_group not in ("A", "B", "C"):
         raise ValueError("Check mode, strategy and vehicle_group against the README")
     return result
