@@ -9,6 +9,8 @@
   "vehicle_group": "B",
   "edge_margin_mm": 35,
   "require_connected_tracks": true,
+  "min_turnouts": 1,
+  "max_turnouts": 10,
   "parts": {
     "83100": {"enabled": true, "max_count": 5},
     "83331": {"enabled": true},

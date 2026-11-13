@@ -28,11 +28,15 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 | `count` | 10 | Number of distinct alternatives requested |
 | `mode` | `mixed` | `single` for a main line with freight switching, `passing` for two trains to meet, or `double` for simultaneous running on two closed routes |
 | `require_connected_tracks` | `true` | Requires a traversable connection between all tracks in each plan. Set to `false` to allow independent loops. |
+| `min_turnouts` | 1 | Minimum number of turnouts in each plan. Set to `0` to disable the minimum. |
+| `max_turnouts` | 10 | Maximum number of turnouts in each plan. Must be at least `min_turnouts`. |
 | `strategy` | `balanced` | Diversifies operating formations. `longest` ranks by continuous lap, `shunting` by total usable freight storage, and `fewest_parts` by track piece count. |
 | `train_length_cm` | 25 | Complete train including locomotive. Both station tracks must hold this length in passing mode. Double mode requires at least this much parallel running track. |
 | `vehicle_group` | B | MOROP vehicle group A, B, or C for radius and clearance |
 | `edge_margin_mm` | 35 | Minimum distance from track centerline to board edge |
 | `seed` | 42 | Repeatable ordering of otherwise tied layouts |
+
+Set `"min_turnouts": 5` and `"max_turnouts": 8` in `layout.json` to require five to eight turnouts per plan, inclusive. The generator counts one turnout per drive listed in the catalog. A double crossover counts as four, a three-way turnout or double slip counts as two, and a fixed crossing counts as zero. If too few plans meet the turnout limits, the generator reports a shortfall.
 
 The `parts` object applies to each alternative independently. This example requires at least one EW2 right turnout, disables EW2 left, and allows up to five buffer stops.
 

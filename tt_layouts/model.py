@@ -338,6 +338,12 @@ def validate(layout, cfg):
     for code, limit in cfg.parts.items():
         if not limit.allows(counts[code]):
             return f"inventory limit for {code}"
+    turnouts = sum(quantity * drive["quantity"] for code, quantity in counts.items()
+                   if (drive := layout.catalog[code].data.get("point_drive")))
+    if turnouts < cfg.min_turnouts:
+        return f"minimum turnout count of {cfg.min_turnouts}"
+    if turnouts > cfg.max_turnouts:
+        return f"maximum turnout count of {cfg.max_turnouts}"
     running_pieces = {move.piece for track in layout.tracks if track.kind != "spur" for move in track.moves}
     if any(piece.part.radius < min_radius(cfg.vehicle_group)
            or (piece.part.radius == 267 and index in running_pieces)
