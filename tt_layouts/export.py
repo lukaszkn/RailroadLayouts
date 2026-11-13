@@ -6,6 +6,7 @@ import csv
 import json
 from math import cos, radians, sin
 from pathlib import Path
+from shutil import copyfile
 import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
@@ -238,12 +239,16 @@ def write_run(layouts, rejected, cfg, directory: Path):
 
 
 def _write_outputs(layouts, rejected, cfg, directory):
+    all_drawings = directory / "all"
+    all_drawings.mkdir()
     rows = []
     for number, layout in enumerate(layouts, 1):
         stem = f"{number:02d}-{layout.mode}"
         folder = directory / stem
         folder.mkdir()
-        _drawing(layout, cfg, number, folder/"layout.jpg")
+        drawing = folder / "layout.jpg"
+        _drawing(layout, cfg, number, drawing)
+        copyfile(drawing, all_drawings / f"{number:03d}-{layout.mode}-layout.jpg")
         drives = _shopping(layout, folder/"shopping.csv")
         joints = [{"from": [a+1, pa], "to": [b+1, pb],
                    "longitudinal_mm": round(g[0], 6), "lateral_mm": round(g[1], 6),

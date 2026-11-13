@@ -159,6 +159,18 @@ class LayoutTests(unittest.TestCase):
                 self.assertEqual((image.format, image.size), ("JPEG", (3000, 2360)))
                 image.verify()
 
+    def test_export_collects_numbered_jpgs(self):
+        with TemporaryDirectory() as root:
+            path = Path(root) / "plans"
+            write_run(self.examples[:2], Counter(), self.config, path)
+            drawings = path / "all"
+            self.assertEqual(sorted(drawing.name for drawing in drawings.iterdir()),
+                             ["001-single-layout.jpg", "002-passing-layout.jpg"])
+            for plan in ("01-single", "02-passing"):
+                original = path / plan / "layout.jpg"
+                collected = drawings / f"0{plan}-layout.jpg"
+                self.assertEqual(collected.read_bytes(), original.read_bytes())
+
     def test_shortfall_report(self):
         with TemporaryDirectory() as root:
             path = Path(root) / "partial"

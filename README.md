@@ -47,6 +47,8 @@ Absent rules allow any quantity. `max_count: null` means unlimited, and `max_cou
 
 ## Build from a plan
 
+Browse the `all/` folder in a generated run to see every drawing in plan order. Filenames use three-digit numbering, such as `001-single-layout.jpg`.
+
 Open the output `index.md` to compare operating moves, usable track lengths and motor counts. The 3000 × 2360 JPG shows a board outline, centimetre grid, scale bar, joints and one label per physical piece. The first number in a label is the placement ID. The second is the Tillig SKU. Each `shopping.csv` lists actual piece quantities and an under-baseboard motor option where needed. Buy against the list for the alternative you choose. `placement.json` gives origin, rotation, connector poses, traversable routes, and the measured joint residuals in millimetres and degrees.
 
 Track plans assume DCC. On double-track designs with a crossover, simultaneous circulation uses the two through routes. Stop conflicting movements before lining the crossover diagonally. Pointwork manuals cover frog wiring, insulation and installation of drives. Add power feeds, wiring and other electrical supplies for your installation.
