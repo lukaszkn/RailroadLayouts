@@ -1,0 +1,1856 @@
+{
+  "plan": "09-passing",
+  "title": "Outside passing track and freight",
+  "mode": "passing",
+  "operations": "Make a meet at the station, then spot wagons on the separate goods road.",
+  "pieces": 44,
+  "longest_lap_mm": 4344.93,
+  "track_lengths_mm": {
+    "lap": 4335.56,
+    "Passing track": 382.65,
+    "station_main": 376.88,
+    "passing_lap": 4344.93,
+    "Goods road": 198.74
+  },
+  "parallel_straight_mm": 0,
+  "point_drives": {
+    "86112": 3
+  },
+  "maximum_joint_residuals": {
+    "longitudinal_mm": 0.163079,
+    "lateral_mm": 0.0,
+    "angular_deg": 0.0
+  },
+  "board_mm": [
+    1600,
+    1200
+  ],
+  "axes": "Origin at upper left, X right, Y down, headings clockwise from X",
+  "parts": [
+    {
+      "id": 1,
+      "code": "83329",
+      "origin": {
+        "x_mm": 395.1,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 395.1,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 524.6,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        },
+        "c": {
+          "x_mm": 521.7194,
+          "y_mm": 123.147,
+          "heading_deg": 345.0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "code": "83120",
+      "origin": {
+        "x_mm": 524.6,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 524.6,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 545.9,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 3,
+      "code": "83104",
+      "origin": {
+        "x_mm": 545.9,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 545.9,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 582.4,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 4,
+      "code": "83104",
+      "origin": {
+        "x_mm": 582.4,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 582.4,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 618.9,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 5,
+      "code": "83103",
+      "origin": {
+        "x_mm": 618.9,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 618.9,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 660.4,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 6,
+      "code": "83102",
+      "origin": {
+        "x_mm": 660.4,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 660.4,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 743.4,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 7,
+      "code": "83101",
+      "origin": {
+        "x_mm": 743.4,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 743.4,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 909.4,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 8,
+      "code": "83101",
+      "origin": {
+        "x_mm": 909.4,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 909.4,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 1075.4,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 9,
+      "code": "83328",
+      "origin": {
+        "x_mm": 1204.9,
+        "y_mm": 144.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1204.9,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 1075.4,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "c": {
+          "x_mm": 1078.2806,
+          "y_mm": 123.147,
+          "heading_deg": 195.0
+        }
+      }
+    },
+    {
+      "id": 10,
+      "code": "83106",
+      "origin": {
+        "x_mm": 1204.9,
+        "y_mm": 144.6221,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1204.9,
+          "y_mm": 144.6221,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 1381.4,
+          "y_mm": 191.9152,
+          "heading_deg": 30.0
+        }
+      }
+    },
+    {
+      "id": 11,
+      "code": "83106",
+      "origin": {
+        "x_mm": 1381.4,
+        "y_mm": 191.9152,
+        "heading_deg": 30.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1381.4,
+          "y_mm": 191.9152,
+          "heading_deg": 210.0
+        },
+        "b": {
+          "x_mm": 1510.607,
+          "y_mm": 321.1221,
+          "heading_deg": 60.0
+        }
+      }
+    },
+    {
+      "id": 12,
+      "code": "83106",
+      "origin": {
+        "x_mm": 1510.607,
+        "y_mm": 321.1221,
+        "heading_deg": 60.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1510.607,
+          "y_mm": 321.1221,
+          "heading_deg": 240.0
+        },
+        "b": {
+          "x_mm": 1557.9,
+          "y_mm": 497.6221,
+          "heading_deg": 90.0
+        }
+      }
+    },
+    {
+      "id": 13,
+      "code": "83102",
+      "origin": {
+        "x_mm": 1557.9,
+        "y_mm": 497.6221,
+        "heading_deg": 90.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1557.9,
+          "y_mm": 497.6221,
+          "heading_deg": 270.0
+        },
+        "b": {
+          "x_mm": 1557.9,
+          "y_mm": 580.6221,
+          "heading_deg": 90.0
+        }
+      }
+    },
+    {
+      "id": 14,
+      "code": "83101",
+      "origin": {
+        "x_mm": 1557.9,
+        "y_mm": 580.6221,
+        "heading_deg": 90.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1557.9,
+          "y_mm": 580.6221,
+          "heading_deg": 270.0
+        },
+        "b": {
+          "x_mm": 1557.9,
+          "y_mm": 746.6221,
+          "heading_deg": 90.0
+        }
+      }
+    },
+    {
+      "id": 15,
+      "code": "83106",
+      "origin": {
+        "x_mm": 1557.9,
+        "y_mm": 746.6221,
+        "heading_deg": 90.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1557.9,
+          "y_mm": 746.6221,
+          "heading_deg": 270.0
+        },
+        "b": {
+          "x_mm": 1510.607,
+          "y_mm": 923.1221,
+          "heading_deg": 120.0
+        }
+      }
+    },
+    {
+      "id": 16,
+      "code": "83106",
+      "origin": {
+        "x_mm": 1510.607,
+        "y_mm": 923.1221,
+        "heading_deg": 120.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1510.607,
+          "y_mm": 923.1221,
+          "heading_deg": 300.0
+        },
+        "b": {
+          "x_mm": 1381.4,
+          "y_mm": 1052.3291,
+          "heading_deg": 150.0
+        }
+      }
+    },
+    {
+      "id": 17,
+      "code": "83106",
+      "origin": {
+        "x_mm": 1381.4,
+        "y_mm": 1052.3291,
+        "heading_deg": 150.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1381.4,
+          "y_mm": 1052.3291,
+          "heading_deg": 330.0
+        },
+        "b": {
+          "x_mm": 1204.9,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 18,
+      "code": "83102",
+      "origin": {
+        "x_mm": 1204.9,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1204.9,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 1121.9,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 19,
+      "code": "83328",
+      "origin": {
+        "x_mm": 1121.9,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1121.9,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 992.4,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        },
+        "c": {
+          "x_mm": 995.2806,
+          "y_mm": 1078.147,
+          "heading_deg": 195.0
+        }
+      }
+    },
+    {
+      "id": 20,
+      "code": "83120",
+      "origin": {
+        "x_mm": 992.4,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 992.4,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 971.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 21,
+      "code": "83104",
+      "origin": {
+        "x_mm": 971.1,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 971.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 934.6,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 22,
+      "code": "83103",
+      "origin": {
+        "x_mm": 934.6,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 934.6,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 893.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 23,
+      "code": "83101",
+      "origin": {
+        "x_mm": 893.1,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 893.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 727.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 24,
+      "code": "83101",
+      "origin": {
+        "x_mm": 727.1,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 727.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 561.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 25,
+      "code": "83101",
+      "origin": {
+        "x_mm": 561.1,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 561.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 395.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 26,
+      "code": "83106",
+      "origin": {
+        "x_mm": 395.1,
+        "y_mm": 1099.6221,
+        "heading_deg": 180.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 395.1,
+          "y_mm": 1099.6221,
+          "heading_deg": 0.0
+        },
+        "b": {
+          "x_mm": 218.6,
+          "y_mm": 1052.3291,
+          "heading_deg": 210.0
+        }
+      }
+    },
+    {
+      "id": 27,
+      "code": "83106",
+      "origin": {
+        "x_mm": 218.6,
+        "y_mm": 1052.3291,
+        "heading_deg": 210.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 218.6,
+          "y_mm": 1052.3291,
+          "heading_deg": 30.0
+        },
+        "b": {
+          "x_mm": 89.393,
+          "y_mm": 923.1221,
+          "heading_deg": 240.0
+        }
+      }
+    },
+    {
+      "id": 28,
+      "code": "83106",
+      "origin": {
+        "x_mm": 89.393,
+        "y_mm": 923.1221,
+        "heading_deg": 240.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 89.393,
+          "y_mm": 923.1221,
+          "heading_deg": 60.0
+        },
+        "b": {
+          "x_mm": 42.1,
+          "y_mm": 746.6221,
+          "heading_deg": 270.0
+        }
+      }
+    },
+    {
+      "id": 29,
+      "code": "83102",
+      "origin": {
+        "x_mm": 42.1,
+        "y_mm": 746.6221,
+        "heading_deg": 270.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 42.1,
+          "y_mm": 746.6221,
+          "heading_deg": 90.0
+        },
+        "b": {
+          "x_mm": 42.1,
+          "y_mm": 663.6221,
+          "heading_deg": 270.0
+        }
+      }
+    },
+    {
+      "id": 30,
+      "code": "83101",
+      "origin": {
+        "x_mm": 42.1,
+        "y_mm": 663.6221,
+        "heading_deg": 270.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 42.1,
+          "y_mm": 663.6221,
+          "heading_deg": 90.0
+        },
+        "b": {
+          "x_mm": 42.1,
+          "y_mm": 497.6221,
+          "heading_deg": 270.0
+        }
+      }
+    },
+    {
+      "id": 31,
+      "code": "83106",
+      "origin": {
+        "x_mm": 42.1,
+        "y_mm": 497.6221,
+        "heading_deg": 270.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 42.1,
+          "y_mm": 497.6221,
+          "heading_deg": 90.0
+        },
+        "b": {
+          "x_mm": 89.393,
+          "y_mm": 321.1221,
+          "heading_deg": 300.0
+        }
+      }
+    },
+    {
+      "id": 32,
+      "code": "83106",
+      "origin": {
+        "x_mm": 89.393,
+        "y_mm": 321.1221,
+        "heading_deg": 300.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 89.393,
+          "y_mm": 321.1221,
+          "heading_deg": 120.0
+        },
+        "b": {
+          "x_mm": 218.6,
+          "y_mm": 191.9152,
+          "heading_deg": 330.0
+        }
+      }
+    },
+    {
+      "id": 33,
+      "code": "83106",
+      "origin": {
+        "x_mm": 218.6,
+        "y_mm": 191.9152,
+        "heading_deg": 330.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 218.6,
+          "y_mm": 191.9152,
+          "heading_deg": 150.0
+        },
+        "b": {
+          "x_mm": 395.1,
+          "y_mm": 144.6221,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 34,
+      "code": "83103",
+      "origin": {
+        "x_mm": 521.7194,
+        "y_mm": 123.147,
+        "heading_deg": 345.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 521.7194,
+          "y_mm": 123.147,
+          "heading_deg": 165.0
+        },
+        "b": {
+          "x_mm": 561.8053,
+          "y_mm": 112.4061,
+          "heading_deg": 345.0
+        }
+      }
+    },
+    {
+      "id": 35,
+      "code": "83107",
+      "origin": {
+        "x_mm": 561.8053,
+        "y_mm": 112.4061,
+        "heading_deg": 345.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 561.8053,
+          "y_mm": 112.4061,
+          "heading_deg": 165.0
+        },
+        "b": {
+          "x_mm": 653.1685,
+          "y_mm": 100.3779,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 36,
+      "code": "83103",
+      "origin": {
+        "x_mm": 653.1685,
+        "y_mm": 100.3779,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 653.1685,
+          "y_mm": 100.3779,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 694.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 37,
+      "code": "83105",
+      "origin": {
+        "x_mm": 694.6685,
+        "y_mm": 100.3779,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 694.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 737.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 38,
+      "code": "83105",
+      "origin": {
+        "x_mm": 737.6685,
+        "y_mm": 100.3779,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 737.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 780.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 39,
+      "code": "83101",
+      "origin": {
+        "x_mm": 780.6685,
+        "y_mm": 100.3779,
+        "heading_deg": 0.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 780.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 180.0
+        },
+        "b": {
+          "x_mm": 946.6685,
+          "y_mm": 100.3779,
+          "heading_deg": 0.0
+        }
+      }
+    },
+    {
+      "id": 40,
+      "code": "83103",
+      "origin": {
+        "x_mm": 1078.2806,
+        "y_mm": 123.147,
+        "heading_deg": 195.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 1078.2806,
+          "y_mm": 123.147,
+          "heading_deg": 15.0
+        },
+        "b": {
+          "x_mm": 1038.1947,
+          "y_mm": 112.4061,
+          "heading_deg": 195.0
+        }
+      }
+    },
+    {
+      "id": 41,
+      "code": "83107",
+      "origin": {
+        "x_mm": 1038.1947,
+        "y_mm": 112.4061,
+        "heading_deg": 195.0
+      },
+      "reflected_curve": true,
+      "connectors": {
+        "a": {
+          "x_mm": 1038.1947,
+          "y_mm": 112.4061,
+          "heading_deg": 15.0
+        },
+        "b": {
+          "x_mm": 946.8315,
+          "y_mm": 100.3779,
+          "heading_deg": 180.0
+        }
+      }
+    },
+    {
+      "id": 42,
+      "code": "83102",
+      "origin": {
+        "x_mm": 995.2806,
+        "y_mm": 1078.147,
+        "heading_deg": 195.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 995.2806,
+          "y_mm": 1078.147,
+          "heading_deg": 15.0
+        },
+        "b": {
+          "x_mm": 915.1087,
+          "y_mm": 1056.6651,
+          "heading_deg": 195.0
+        }
+      }
+    },
+    {
+      "id": 43,
+      "code": "83101",
+      "origin": {
+        "x_mm": 915.1087,
+        "y_mm": 1056.6651,
+        "heading_deg": 195.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 915.1087,
+          "y_mm": 1056.6651,
+          "heading_deg": 15.0
+        },
+        "b": {
+          "x_mm": 754.7651,
+          "y_mm": 1013.7011,
+          "heading_deg": 195.0
+        }
+      }
+    },
+    {
+      "id": 44,
+      "code": "83100",
+      "origin": {
+        "x_mm": 754.7651,
+        "y_mm": 1013.7011,
+        "heading_deg": 195.0
+      },
+      "reflected_curve": false,
+      "connectors": {
+        "a": {
+          "x_mm": 754.7651,
+          "y_mm": 1013.7011,
+          "heading_deg": 15.0
+        }
+      },
+      "buffer_stop": {
+        "x_mm": 714.6791,
+        "y_mm": 1002.9601,
+        "heading_deg": 195.0
+      }
+    }
+  ],
+  "routes": [
+    {
+      "name": "Main line",
+      "kind": "loop",
+      "moves": [
+        [
+          1,
+          "a",
+          "b"
+        ],
+        [
+          2,
+          "a",
+          "b"
+        ],
+        [
+          3,
+          "a",
+          "b"
+        ],
+        [
+          4,
+          "a",
+          "b"
+        ],
+        [
+          5,
+          "a",
+          "b"
+        ],
+        [
+          6,
+          "a",
+          "b"
+        ],
+        [
+          7,
+          "a",
+          "b"
+        ],
+        [
+          8,
+          "a",
+          "b"
+        ],
+        [
+          9,
+          "b",
+          "a"
+        ],
+        [
+          10,
+          "a",
+          "b"
+        ],
+        [
+          11,
+          "a",
+          "b"
+        ],
+        [
+          12,
+          "a",
+          "b"
+        ],
+        [
+          13,
+          "a",
+          "b"
+        ],
+        [
+          14,
+          "a",
+          "b"
+        ],
+        [
+          15,
+          "a",
+          "b"
+        ],
+        [
+          16,
+          "a",
+          "b"
+        ],
+        [
+          17,
+          "a",
+          "b"
+        ],
+        [
+          18,
+          "a",
+          "b"
+        ],
+        [
+          19,
+          "a",
+          "b"
+        ],
+        [
+          20,
+          "a",
+          "b"
+        ],
+        [
+          21,
+          "a",
+          "b"
+        ],
+        [
+          22,
+          "a",
+          "b"
+        ],
+        [
+          23,
+          "a",
+          "b"
+        ],
+        [
+          24,
+          "a",
+          "b"
+        ],
+        [
+          25,
+          "a",
+          "b"
+        ],
+        [
+          26,
+          "a",
+          "b"
+        ],
+        [
+          27,
+          "a",
+          "b"
+        ],
+        [
+          28,
+          "a",
+          "b"
+        ],
+        [
+          29,
+          "a",
+          "b"
+        ],
+        [
+          30,
+          "a",
+          "b"
+        ],
+        [
+          31,
+          "a",
+          "b"
+        ],
+        [
+          32,
+          "a",
+          "b"
+        ],
+        [
+          33,
+          "a",
+          "b"
+        ]
+      ]
+    },
+    {
+      "name": "Passing track",
+      "kind": "passing",
+      "moves": [
+        [
+          1,
+          "a",
+          "c"
+        ],
+        [
+          34,
+          "a",
+          "b"
+        ],
+        [
+          35,
+          "a",
+          "b"
+        ],
+        [
+          36,
+          "a",
+          "b"
+        ],
+        [
+          37,
+          "a",
+          "b"
+        ],
+        [
+          38,
+          "a",
+          "b"
+        ],
+        [
+          39,
+          "a",
+          "b"
+        ],
+        [
+          41,
+          "b",
+          "a"
+        ],
+        [
+          40,
+          "b",
+          "a"
+        ],
+        [
+          9,
+          "c",
+          "a"
+        ]
+      ]
+    },
+    {
+      "name": "Goods road",
+      "kind": "spur",
+      "moves": [
+        [
+          19,
+          "a",
+          "c"
+        ],
+        [
+          42,
+          "a",
+          "b"
+        ],
+        [
+          43,
+          "a",
+          "b"
+        ],
+        [
+          44,
+          "a",
+          "stop"
+        ]
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "from": [
+        1,
+        "b"
+      ],
+      "to": [
+        2,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        2,
+        "b"
+      ],
+      "to": [
+        3,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        3,
+        "b"
+      ],
+      "to": [
+        4,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        4,
+        "b"
+      ],
+      "to": [
+        5,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        5,
+        "b"
+      ],
+      "to": [
+        6,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        6,
+        "b"
+      ],
+      "to": [
+        7,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        7,
+        "b"
+      ],
+      "to": [
+        8,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        8,
+        "b"
+      ],
+      "to": [
+        9,
+        "b"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        9,
+        "a"
+      ],
+      "to": [
+        10,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        10,
+        "b"
+      ],
+      "to": [
+        11,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        11,
+        "b"
+      ],
+      "to": [
+        12,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        12,
+        "b"
+      ],
+      "to": [
+        13,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        13,
+        "b"
+      ],
+      "to": [
+        14,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        14,
+        "b"
+      ],
+      "to": [
+        15,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        15,
+        "b"
+      ],
+      "to": [
+        16,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        16,
+        "b"
+      ],
+      "to": [
+        17,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        17,
+        "b"
+      ],
+      "to": [
+        18,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        18,
+        "b"
+      ],
+      "to": [
+        19,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        19,
+        "b"
+      ],
+      "to": [
+        20,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        20,
+        "b"
+      ],
+      "to": [
+        21,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        21,
+        "b"
+      ],
+      "to": [
+        22,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        22,
+        "b"
+      ],
+      "to": [
+        23,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        23,
+        "b"
+      ],
+      "to": [
+        24,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        24,
+        "b"
+      ],
+      "to": [
+        25,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        25,
+        "b"
+      ],
+      "to": [
+        26,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        26,
+        "b"
+      ],
+      "to": [
+        27,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        27,
+        "b"
+      ],
+      "to": [
+        28,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        28,
+        "b"
+      ],
+      "to": [
+        29,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        29,
+        "b"
+      ],
+      "to": [
+        30,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        30,
+        "b"
+      ],
+      "to": [
+        31,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        31,
+        "b"
+      ],
+      "to": [
+        32,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        32,
+        "b"
+      ],
+      "to": [
+        33,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        33,
+        "b"
+      ],
+      "to": [
+        1,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        1,
+        "c"
+      ],
+      "to": [
+        34,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        34,
+        "b"
+      ],
+      "to": [
+        35,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        35,
+        "b"
+      ],
+      "to": [
+        36,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        36,
+        "b"
+      ],
+      "to": [
+        37,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        37,
+        "b"
+      ],
+      "to": [
+        38,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        38,
+        "b"
+      ],
+      "to": [
+        39,
+        "a"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        39,
+        "b"
+      ],
+      "to": [
+        41,
+        "b"
+      ],
+      "longitudinal_mm": 0.163079,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        41,
+        "a"
+      ],
+      "to": [
+        40,
+        "b"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        40,
+        "a"
+      ],
+      "to": [
+        9,
+        "c"
+      ],
+      "longitudinal_mm": 0.0,
+      "lateral_mm": -0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        19,
+        "c"
+      ],
+      "to": [
+        42,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        42,
+        "b"
+      ],
+      "to": [
+        43,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    },
+    {
+      "from": [
+        43,
+        "b"
+      ],
+      "to": [
+        44,
+        "a"
+      ],
+      "longitudinal_mm": -0.0,
+      "lateral_mm": 0.0,
+      "angular_deg": 0.0
+    }
+  ]
+}

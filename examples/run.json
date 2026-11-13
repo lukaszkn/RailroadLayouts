@@ -1,0 +1,266 @@
+{
+  "config": {
+    "width_cm": 160,
+    "height_cm": 120,
+    "count": 10,
+    "mode": "mixed",
+    "strategy": "balanced",
+    "train_length_cm": 25,
+    "seed": 42,
+    "vehicle_group": "B",
+    "edge_margin_mm": 35,
+    "parts": {
+      "83100": {
+        "enabled": true,
+        "min_count": 0,
+        "max_count": 5
+      },
+      "83331": {
+        "enabled": true,
+        "min_count": 0,
+        "max_count": null
+      },
+      "83332": {
+        "enabled": false,
+        "min_count": 0,
+        "max_count": null
+      }
+    }
+  },
+  "generated": 10,
+  "shortfall": 0,
+  "rejections": {
+    "board size or edge margin": 32,
+    "track clearance between Goods road and Main line": 1,
+    "unplanned intersection (83111 and 83100)": 2,
+    "track clearance between Yard road and Main line": 14,
+    "unplanned intersection (83111 and 83101)": 3,
+    "track clearance between Passing track and Main line": 10
+  },
+  "layouts": [
+    {
+      "plan": "01-single",
+      "title": "Freight yard",
+      "mode": "single",
+      "operations": "Sort wagons between the yard road and the loading spur.",
+      "pieces": 47,
+      "longest_lap_mm": 4296.14,
+      "track_lengths_mm": {
+        "lap": 4296.14,
+        "Yard road": 240.19,
+        "Loading spur": 240.63
+      },
+      "parallel_straight_mm": 0,
+      "point_drives": {
+        "86112": 2
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.0,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "02-passing",
+      "title": "Passing station and freight",
+      "mode": "passing",
+      "operations": "Make a meet at the station, then spot wagons on the separate goods road.",
+      "pieces": 44,
+      "longest_lap_mm": 4344.93,
+      "track_lengths_mm": {
+        "lap": 4335.56,
+        "Passing track": 382.65,
+        "station_main": 376.88,
+        "passing_lap": 4344.93,
+        "Goods road": 198.74
+      },
+      "parallel_straight_mm": 0,
+      "point_drives": {
+        "86112": 3
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.163079,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "03-double",
+      "title": "Crossover and goods road",
+      "mode": "double",
+      "operations": "Hold the other train while the local crosses over, then switch the goods road from the inner main.",
+      "pieces": 73,
+      "longest_lap_mm": 4351.94,
+      "track_lengths_mm": {
+        "lap": 4351.94,
+        "inner_lap": 4081.76,
+        "Goods road": 192.79
+      },
+      "parallel_straight_mm": 682.9,
+      "point_drives": {
+        "86112": 5
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.0,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "04-passing",
+      "title": "Passing station",
+      "mode": "passing",
+      "operations": "Hold one train on the station loop while the other uses the main line.",
+      "pieces": 40,
+      "longest_lap_mm": 4344.93,
+      "track_lengths_mm": {
+        "lap": 4335.56,
+        "Passing track": 382.65,
+        "station_main": 376.88,
+        "passing_lap": 4344.93
+      },
+      "parallel_straight_mm": 0,
+      "point_drives": {
+        "86112": 2
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.163079,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "05-double",
+      "title": "Double track and freight",
+      "mode": "double",
+      "operations": "Keep the outer main running while a local works the goods road from the inner main.",
+      "pieces": 79,
+      "longest_lap_mm": 4462.14,
+      "track_lengths_mm": {
+        "lap": 4462.14,
+        "inner_lap": 3921.79,
+        "Goods road": 192.79
+      },
+      "parallel_straight_mm": 738.0,
+      "point_drives": {
+        "86112": 1
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.0,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "06-single",
+      "title": "Y turnout freight junction",
+      "mode": "single",
+      "operations": "Use the paired freight spurs for opposite-direction local trains.",
+      "pieces": 40,
+      "longest_lap_mm": 3609.68,
+      "track_lengths_mm": {
+        "lap": 3609.68,
+        "Freight spur 1": 214.86,
+        "Loading spur 1": 214.86,
+        "Freight spur 2": 214.86,
+        "Loading spur 2": 214.86
+      },
+      "parallel_straight_mm": 0,
+      "point_drives": {
+        "86112": 4
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.0,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "07-passing",
+      "title": "Oval passing station",
+      "mode": "passing",
+      "operations": "Hold one train on the station loop while the other uses the main line.",
+      "pieces": 35,
+      "longest_lap_mm": 3807.21,
+      "track_lengths_mm": {
+        "lap": 3797.96,
+        "Passing track": 334.61,
+        "station_main": 330.0,
+        "passing_lap": 3807.21
+      },
+      "parallel_straight_mm": 0,
+      "point_drives": {
+        "86112": 2
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.12374,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "08-double",
+      "title": "Double track crossover",
+      "mode": "double",
+      "operations": "Run a train on each loop with the crossover lined straight. Stop the other train before crossing over.",
+      "pieces": 69,
+      "longest_lap_mm": 4351.94,
+      "track_lengths_mm": {
+        "lap": 4351.94,
+        "inner_lap": 4081.76
+      },
+      "parallel_straight_mm": 682.9,
+      "point_drives": {
+        "86112": 4
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.0,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "09-passing",
+      "title": "Outside passing track and freight",
+      "mode": "passing",
+      "operations": "Make a meet at the station, then spot wagons on the separate goods road.",
+      "pieces": 44,
+      "longest_lap_mm": 4344.93,
+      "track_lengths_mm": {
+        "lap": 4335.56,
+        "Passing track": 382.65,
+        "station_main": 376.88,
+        "passing_lap": 4344.93,
+        "Goods road": 198.74
+      },
+      "parallel_straight_mm": 0,
+      "point_drives": {
+        "86112": 3
+      },
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.163079,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    },
+    {
+      "plan": "10-double",
+      "title": "Independent double track",
+      "mode": "double",
+      "operations": "Run passenger and freight trains simultaneously on their own tracks.",
+      "pieces": 76,
+      "longest_lap_mm": 4462.14,
+      "track_lengths_mm": {
+        "lap": 4462.14,
+        "inner_lap": 4191.96
+      },
+      "parallel_straight_mm": 738.0,
+      "point_drives": {},
+      "maximum_joint_residuals": {
+        "longitudinal_mm": 0.0,
+        "lateral_mm": 0.0,
+        "angular_deg": 0.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,1723 @@
+{
+  "system": "Tillig TT Modellgleis",
+  "scale": "1:120",
+  "gauge_mm": 12,
+  "rail_height_mm": 2.07,
+  "source": "https://www.tillig.com/eng/Modellgleissysteme.html",
+  "coordinates": "Millimetres from local origin. X right, Y down. Heading clockwise from +X and outward at connectors.",
+  "parts": {
+    "83100": {
+      "name_en": "Buffer stop with track",
+      "name_pl": "Kozioł oporowy z torem",
+      "kind": "buffer",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83100.html",
+      "dimensions": {
+        "length_mm": 41.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83100.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "stop",
+          "segments": [
+            {
+              "length_mm": 41.5
+            }
+          ]
+        }
+      ],
+      "stop": {
+        "x_mm": 41.5,
+        "y_mm": -0.0,
+        "heading_deg": 0
+      }
+    },
+    "83101": {
+      "name_en": "Straight track G1",
+      "name_pl": "Tor prosty G1",
+      "kind": "straight",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83101.html",
+      "dimensions": {
+        "length_mm": 166
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83101.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 166.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        }
+      ]
+    },
+    "83102": {
+      "name_en": "Straight track G2",
+      "name_pl": "Tor prosty G2",
+      "kind": "straight",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83102.html",
+      "dimensions": {
+        "length_mm": 83
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83102.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 83.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 83
+            }
+          ]
+        }
+      ]
+    },
+    "83103": {
+      "name_en": "Straight track G4",
+      "name_pl": "Tor prosty G4",
+      "kind": "straight",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83103.html",
+      "dimensions": {
+        "length_mm": 41.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83103.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 41.5,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 41.5
+            }
+          ]
+        }
+      ]
+    },
+    "83104": {
+      "name_en": "Straight track G5",
+      "name_pl": "Tor prosty G5",
+      "kind": "straight",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83104.html",
+      "dimensions": {
+        "length_mm": 36.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83104.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 36.5,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 36.5
+            }
+          ]
+        }
+      ]
+    },
+    "83105": {
+      "name_en": "Straight track G3",
+      "name_pl": "Tor prosty G3",
+      "kind": "straight",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83105.html",
+      "dimensions": {
+        "length_mm": 43
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83105.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 43.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 43
+            }
+          ]
+        }
+      ]
+    },
+    "83106": {
+      "name_en": "Curved track R21",
+      "name_pl": "Tor łukowy R21",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83106.html",
+      "dimensions": {
+        "radius_mm": 353,
+        "sweep_deg": 30,
+        "arc_length_mm": 184.830368
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83106.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 176.5,
+          "y_mm": 47.293032464,
+          "heading_deg": 30
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 353,
+              "sweep_deg": 30
+            }
+          ]
+        }
+      ]
+    },
+    "83107": {
+      "name_en": "Curved track R22",
+      "name_pl": "Tor łukowy R22",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83107.html",
+      "dimensions": {
+        "radius_mm": 353,
+        "sweep_deg": 15,
+        "arc_length_mm": 92.415184
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83107.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 91.363122921,
+          "y_mm": 12.02818332,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 353,
+              "sweep_deg": 15
+            }
+          ]
+        }
+      ]
+    },
+    "83109": {
+      "name_en": "Curved track R11",
+      "name_pl": "Tor łukowy R11",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83109.html",
+      "dimensions": {
+        "radius_mm": 310,
+        "sweep_deg": 30,
+        "arc_length_mm": 162.31562
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83109.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 155.0,
+          "y_mm": 41.532124827,
+          "heading_deg": 30
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 310,
+              "sweep_deg": 30
+            }
+          ]
+        }
+      ]
+    },
+    "83110": {
+      "name_en": "Curved track R12",
+      "name_pl": "Tor łukowy R12",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83110.html",
+      "dimensions": {
+        "radius_mm": 310,
+        "sweep_deg": 15,
+        "arc_length_mm": 81.15781
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83110.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 80.233903982,
+          "y_mm": 10.56299385,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 310,
+              "sweep_deg": 15
+            }
+          ]
+        }
+      ]
+    },
+    "83111": {
+      "name_en": "Curved track R31",
+      "name_pl": "Tor łukowy R31",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83111.html",
+      "dimensions": {
+        "radius_mm": 396,
+        "sweep_deg": 30,
+        "arc_length_mm": 207.345115
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83111.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 198.0,
+          "y_mm": 53.053940101,
+          "heading_deg": 30
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 396,
+              "sweep_deg": 30
+            }
+          ]
+        }
+      ]
+    },
+    "83112": {
+      "name_en": "Curved track R32",
+      "name_pl": "Tor łukowy R32",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83112.html",
+      "dimensions": {
+        "radius_mm": 396,
+        "sweep_deg": 15,
+        "arc_length_mm": 103.672558
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83112.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 102.492341861,
+          "y_mm": 13.49337279,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 396,
+              "sweep_deg": 15
+            }
+          ]
+        }
+      ]
+    },
+    "83113": {
+      "name_en": "Curved track R14",
+      "name_pl": "Tor łukowy R14",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83113.html",
+      "dimensions": {
+        "radius_mm": 310,
+        "sweep_deg": 7.5,
+        "arc_length_mm": 40.578905
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83113.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 40.463119588,
+          "y_mm": 2.652092974,
+          "heading_deg": 7.5
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 310,
+              "sweep_deg": 7.5
+            }
+          ]
+        }
+      ]
+    },
+    "83114": {
+      "name_en": "Curved track R24",
+      "name_pl": "Tor łukowy R24",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83114.html",
+      "dimensions": {
+        "radius_mm": 353,
+        "sweep_deg": 7.5,
+        "arc_length_mm": 46.207592
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83114.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 46.075745854,
+          "y_mm": 3.019963935,
+          "heading_deg": 7.5
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 353,
+              "sweep_deg": 7.5
+            }
+          ]
+        }
+      ]
+    },
+    "83115": {
+      "name_en": "Curved track R04",
+      "name_pl": "Tor łukowy R04",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83115.html",
+      "dimensions": {
+        "radius_mm": 267,
+        "sweep_deg": 7.5,
+        "arc_length_mm": 34.950218
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83115.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 34.850493323,
+          "y_mm": 2.284222013,
+          "heading_deg": 7.5
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 267,
+              "sweep_deg": 7.5
+            }
+          ]
+        }
+      ],
+      "notes": "Tillig designates this radius for industrial tracks and short two-axle vehicles."
+    },
+    "83116": {
+      "name_en": "Curved track R01",
+      "name_pl": "Tor łukowy R01",
+      "kind": "curve",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83116.html",
+      "dimensions": {
+        "radius_mm": 267,
+        "sweep_deg": 30,
+        "arc_length_mm": 139.800873
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83116.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 133.5,
+          "y_mm": 35.77121719,
+          "heading_deg": 30
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 267,
+              "sweep_deg": 30
+            }
+          ]
+        }
+      ],
+      "notes": "Tillig designates this radius for industrial tracks and short two-axle vehicles."
+    },
+    "83120": {
+      "name_en": "Straight track G6",
+      "name_pl": "Tor prosty G6",
+      "kind": "straight",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83120.html",
+      "dimensions": {
+        "length_mm": 21.3
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83120.html"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 21.3,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 21.3
+            }
+          ]
+        }
+      ]
+    },
+    "83161": {
+      "name_en": "K1 15° fixed crossing",
+      "name_pl": "Skrzyżowanie K1 15°",
+      "kind": "diamond",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83161.html",
+      "dimensions": {
+        "length_mm": 166,
+        "crossing_angle_deg": 15
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83161.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83161_368361-Kreuzung15_2019_09_19.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "c": {
+          "x_mm": 2.828156418,
+          "y_mm": 21.481980744,
+          "heading_deg": 165
+        },
+        "b": {
+          "x_mm": 166.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "d": {
+          "x_mm": 163.171843582,
+          "y_mm": -21.481980743,
+          "heading_deg": 345
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        },
+        {
+          "from": "c",
+          "to": "d",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        }
+      ],
+      "route_conflicts": [
+        [
+          "a-b",
+          "c-d"
+        ]
+      ]
+    },
+    "83170": {
+      "name_en": "K2 30° fixed crossing",
+      "name_pl": "Skrzyżowanie K2 30°",
+      "kind": "diamond",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83170.html",
+      "dimensions": {
+        "length_mm": 86,
+        "crossing_angle_deg": 30
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83170.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83170_368360-Kreuzung_2020_04_22.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "c": {
+          "x_mm": 5.760907637,
+          "y_mm": 21.5,
+          "heading_deg": 150
+        },
+        "b": {
+          "x_mm": 86.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "d": {
+          "x_mm": 80.239092362,
+          "y_mm": -21.5,
+          "heading_deg": 330
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 86
+            }
+          ]
+        },
+        {
+          "from": "c",
+          "to": "d",
+          "segments": [
+            {
+              "length_mm": 86
+            }
+          ]
+        }
+      ],
+      "route_conflicts": [
+        [
+          "a-b",
+          "c-d"
+        ]
+      ]
+    },
+    "83212": {
+      "name_en": "DGV double crossover",
+      "name_pl": "Podwójne połączenie torowe DGV",
+      "kind": "crossover",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83212.html",
+      "dimensions": {
+        "length_mm": 251,
+        "track_centres_mm": 43,
+        "crossing_angle_deg": 30,
+        "frog_angle_deg": 15
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83212.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83212_368382-DGV%20TT-M_2023_09_29.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "c": {
+          "x_mm": 0,
+          "y_mm": 43,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 251.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "d": {
+          "x_mm": 251.0,
+          "y_mm": 43.0,
+          "heading_deg": 0
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 251
+            }
+          ]
+        },
+        {
+          "from": "c",
+          "to": "d",
+          "segments": [
+            {
+              "length_mm": 251
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "d",
+          "segments": [
+            {
+              "radius_mm": 343.79072533146035,
+              "sweep_deg": 15
+            },
+            {
+              "length_mm": 75.6174268471815
+            },
+            {
+              "radius_mm": 343.79072533146035,
+              "sweep_deg": -15
+            }
+          ]
+        },
+        {
+          "from": "c",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 343.79072533146035,
+              "sweep_deg": -15
+            },
+            {
+              "length_mm": 75.6174268471815
+            },
+            {
+              "radius_mm": 343.79072533146035,
+              "sweep_deg": 15
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 4,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "The four ports and straight routes use the documented 251 mm by 43 mm footprint. The crossover centerlines are inferred from the footprint and angles. A conservative 310 mm radius is used for stock compatibility.",
+      "clearance_radius_mm": 310,
+      "route_conflicts": [
+        [
+          "a-d",
+          "c-b"
+        ],
+        [
+          "a-d",
+          "a-b"
+        ],
+        [
+          "a-d",
+          "c-d"
+        ],
+        [
+          "c-b",
+          "a-b"
+        ],
+        [
+          "c-b",
+          "c-d"
+        ]
+      ]
+    },
+    "83230": {
+      "name_en": "Asymmetrical three-way turnout",
+      "name_pl": "Rozjazd trójdrożny asymetryczny",
+      "kind": "three_way",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83230.html",
+      "dimensions": {
+        "length_mm": 166,
+        "branch_radius_mm": 353,
+        "exit_angle_deg": 15,
+        "offset_tangent_mm": 36.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83230.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83230_368375-DWW_2020_06_23.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 166.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 126.619415581,
+          "y_mm": -21.475078466,
+          "heading_deg": 345
+        },
+        "d": {
+          "x_mm": 163.119415581,
+          "y_mm": 21.475078466,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 353,
+              "sweep_deg": -15
+            },
+            {
+              "length_mm": 36.5
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "d",
+          "segments": [
+            {
+              "length_mm": 36.5
+            },
+            {
+              "radius_mm": 353,
+              "sweep_deg": 15
+            },
+            {
+              "length_mm": 36.5
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 2,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "The product page and dimensioned drawing specify 166 mm. The 116 mm in a text block of the leaflet conflicts with the drawing."
+    },
+    "83300": {
+      "name_en": "DKW I 15° double slip",
+      "name_pl": "Rozjazd podwójny krzyżowy DKW I",
+      "kind": "slip",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83300.html",
+      "dimensions": {
+        "length_mm": 166,
+        "crossing_angle_deg": 15,
+        "branch_radius_mm": 310,
+        "nominal_tangent_mm": 42.2
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83300.html",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "c": {
+          "x_mm": 2.828156418,
+          "y_mm": 21.481980744,
+          "heading_deg": 165
+        },
+        "b": {
+          "x_mm": 166.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "d": {
+          "x_mm": 163.171843582,
+          "y_mm": -21.481980743,
+          "heading_deg": 345
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        },
+        {
+          "from": "c",
+          "to": "d",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "d",
+          "segments": [
+            {
+              "length_mm": 42.187725747907294
+            },
+            {
+              "radius_mm": 310,
+              "sweep_deg": -15
+            },
+            {
+              "length_mm": 42.187725747907294
+            }
+          ]
+        },
+        {
+          "from": "c",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 42.187725747907294
+            },
+            {
+              "radius_mm": 310,
+              "sweep_deg": 15
+            },
+            {
+              "length_mm": 42.187725747907294
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 2,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "route_conflicts": [
+        [
+          "a-b",
+          "c-d"
+        ]
+      ]
+    },
+    "83328": {
+      "name_en": "EW1 15° right turnout",
+      "name_pl": "Rozjazd EW1 15° prawy",
+      "kind": "turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83328.html",
+      "dimensions": {
+        "length_mm": 129.5,
+        "branch_radius_mm": 353,
+        "exit_angle_deg": 15,
+        "frog_angle_deg": 15,
+        "branch_exit_tangent_mm": 36.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83328.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83328_29_368322-Modellweiche%2015%C2%B0%20TT-M_2023_09_28.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 129.5,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 126.619415581,
+          "y_mm": 21.475078466,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 129.5
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 353,
+              "sweep_deg": 15
+            },
+            {
+              "length_mm": 36.5
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "The German and Polish geometry drawing specifies a 15° angle and a 36.5 mm tangent after the arc."
+    },
+    "83329": {
+      "name_en": "EW1 15° left turnout",
+      "name_pl": "Rozjazd EW1 15° lewy",
+      "kind": "turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83329.html",
+      "dimensions": {
+        "length_mm": 129.5,
+        "branch_radius_mm": 353,
+        "exit_angle_deg": 15,
+        "frog_angle_deg": 15,
+        "branch_exit_tangent_mm": 36.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83329.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83328_29_368322-Modellweiche%2015%C2%B0%20TT-M_2023_09_28.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 129.5,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 126.619415581,
+          "y_mm": -21.475078466,
+          "heading_deg": 345
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 129.5
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 353,
+              "sweep_deg": -15
+            },
+            {
+              "length_mm": 36.5
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "The German and Polish geometry drawing specifies a 15° angle and a 36.5 mm tangent after the arc."
+    },
+    "83331": {
+      "name_en": "EW2 15° right turnout",
+      "name_pl": "Rozjazd EW2 15° prawy",
+      "kind": "turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83331.html",
+      "dimensions": {
+        "length_mm": 166,
+        "branch_radius_mm": 631,
+        "exit_angle_deg": 15,
+        "frog_angle_deg": 12,
+        "branch_exit_tangent_mm": 0
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83331.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83331_32_368330-Modellgleis%20EW2_2020_04_22.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 166.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 163.31481746,
+          "y_mm": 21.500803612,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 631,
+              "sweep_deg": 15
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "The dimensioned Tillig catalog shows the R631 15° nominal branch arc. The frog angle and exit heading are different."
+    },
+    "83332": {
+      "name_en": "EW2 15° left turnout",
+      "name_pl": "Rozjazd EW2 15° lewy",
+      "kind": "turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83332.html",
+      "dimensions": {
+        "length_mm": 166,
+        "branch_radius_mm": 631,
+        "exit_angle_deg": 15,
+        "frog_angle_deg": 12,
+        "branch_exit_tangent_mm": 0
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83332.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83331_32_368330-Modellgleis%20EW2_2020_04_22.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 166.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 163.31481746,
+          "y_mm": -21.500803612,
+          "heading_deg": 345
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 166
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 631,
+              "sweep_deg": -15
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "The dimensioned Tillig catalog shows the R631 15° nominal branch arc. The frog angle and exit heading are different."
+    },
+    "83341": {
+      "name_en": "EW3 12° right turnout",
+      "name_pl": "Rozjazd EW3 12° prawy",
+      "kind": "turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83341.html",
+      "dimensions": {
+        "length_mm": 207,
+        "branch_radius_mm": 984,
+        "exit_angle_deg": 12,
+        "frog_angle_deg": 12,
+        "branch_exit_tangent_mm": 0
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83341.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83341_42_368340-Modellgleis%20EW3_2020_04_22.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 207.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 204.585103765,
+          "y_mm": 21.502760878,
+          "heading_deg": 12
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 207
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 984,
+              "sweep_deg": 12
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "Use the 12° exit in the dimensioned Tillig catalog and product page. The 2020 wiring leaflet lists 15° in its exit row, which conflicts with the dimensioned geometry."
+    },
+    "83342": {
+      "name_en": "EW3 12° left turnout",
+      "name_pl": "Rozjazd EW3 12° lewy",
+      "kind": "turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83342.html",
+      "dimensions": {
+        "length_mm": 207,
+        "branch_radius_mm": 984,
+        "exit_angle_deg": 12,
+        "frog_angle_deg": 12,
+        "branch_exit_tangent_mm": 0
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83342.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83341_42_368340-Modellgleis%20EW3_2020_04_22.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 207.0,
+          "y_mm": -0.0,
+          "heading_deg": 0
+        },
+        "c": {
+          "x_mm": 204.585103765,
+          "y_mm": -21.502760878,
+          "heading_deg": 348
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "length_mm": 207
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 984,
+              "sweep_deg": -12
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      },
+      "notes": "Use the 12° exit in the dimensioned Tillig catalog and product page. The 2020 wiring leaflet lists 15° in its exit row, which conflicts with the dimensioned geometry."
+    },
+    "83363": {
+      "name_en": "IBW right curved turnout",
+      "name_pl": "Rozjazd łukowy IBW prawy",
+      "kind": "curved_turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83363.html",
+      "dimensions": {
+        "outer_radius_mm": 631,
+        "outer_sweep_deg": 15,
+        "inner_radius_mm": 310,
+        "inner_sweep_deg": 30
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83363.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83363_64_368315-IBW_2019_03_04.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 155.0,
+          "y_mm": 41.532124827,
+          "heading_deg": 30
+        },
+        "c": {
+          "x_mm": 163.31481746,
+          "y_mm": 21.500803612,
+          "heading_deg": 15
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 310,
+              "sweep_deg": 30
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 631,
+              "sweep_deg": 15
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      }
+    },
+    "83364": {
+      "name_en": "IBW left curved turnout",
+      "name_pl": "Rozjazd łukowy IBW lewy",
+      "kind": "curved_turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83364.html",
+      "dimensions": {
+        "outer_radius_mm": 631,
+        "outer_sweep_deg": 15,
+        "inner_radius_mm": 310,
+        "inner_sweep_deg": 30
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83364.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83363_64_368315-IBW_2019_03_04.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 155.0,
+          "y_mm": -41.532124827,
+          "heading_deg": 330
+        },
+        "c": {
+          "x_mm": 163.31481746,
+          "y_mm": -21.500803612,
+          "heading_deg": 345
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 310,
+              "sweep_deg": -30
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 631,
+              "sweep_deg": -15
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      }
+    },
+    "83380": {
+      "name_en": "ABW 15° Y turnout",
+      "name_pl": "Rozjazd symetryczny ABW 15°",
+      "kind": "y_turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83380.html",
+      "dimensions": {
+        "nominal_length_mm": 167,
+        "branch_radius_mm": 1273,
+        "angle_between_exits_deg": 15.0,
+        "sweep_per_leg_deg": 7.5
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83380.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83380_82_368410-ABW_2020_04_22.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 166.159842696,
+          "y_mm": -10.890691471,
+          "heading_deg": 352.5
+        },
+        "c": {
+          "x_mm": 166.159842696,
+          "y_mm": 10.890691471,
+          "heading_deg": 7.5
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 1273,
+              "sweep_deg": -7.5
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 1273,
+              "sweep_deg": 7.5
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      }
+    },
+    "83382": {
+      "name_en": "ABW 12° Y turnout",
+      "name_pl": "Rozjazd symetryczny ABW 12°",
+      "kind": "y_turnout",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83382.html",
+      "dimensions": {
+        "nominal_length_mm": 208,
+        "branch_radius_mm": 1986,
+        "angle_between_exits_deg": 12,
+        "sweep_per_leg_deg": 6
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83382.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83380_82_368410-ABW_2020_04_22.pdf",
+        "https://vasutmodell.com/pics/tt-tillig-modell-sinrendszer-geometriaja-338458.pdf"
+      ],
+      "connectors": {
+        "a": {
+          "x_mm": 0,
+          "y_mm": 0,
+          "heading_deg": 180
+        },
+        "b": {
+          "x_mm": 207.59352805,
+          "y_mm": -10.879515799,
+          "heading_deg": 354
+        },
+        "c": {
+          "x_mm": 207.59352805,
+          "y_mm": 10.879515799,
+          "heading_deg": 6
+        }
+      },
+      "routes": [
+        {
+          "from": "a",
+          "to": "b",
+          "segments": [
+            {
+              "radius_mm": 1986,
+              "sweep_deg": -6
+            }
+          ]
+        },
+        {
+          "from": "a",
+          "to": "c",
+          "segments": [
+            {
+              "radius_mm": 1986,
+              "sweep_deg": 6
+            }
+          ]
+        }
+      ],
+      "point_drive": {
+        "code": "86112",
+        "quantity": 1,
+        "product_url": "https://www.tillig.com/Produkte/produktinfo-86112.html"
+      }
+    },
+    "83391": {
+      "name_en": "DKW II Baeseler double slip",
+      "name_pl": "Rozjazd podwójny krzyżowy DKW II Baeseler",
+      "kind": "reference",
+      "product_url": "https://www.tillig.com/Produkte/produktinfo-83391.html",
+      "dimensions": {
+        "product_page": {
+          "length_mm": 208.6,
+          "branch_radius_mm": 792,
+          "exit_angle_deg": 15
+        },
+        "manual": {
+          "length_mm": 210.6,
+          "branch_radius_mm": 800,
+          "exit_angle_deg": 15
+        }
+      },
+      "sources": [
+        "https://www.tillig.com/Produkte/produktinfo-83391.html",
+        "https://www.tillig.com/dateien/Produkte/TTModellbahnen/Modellgleissysteme/WeichenKreuzungen/83391_368385-DKW-TT_2019_08_21.pdf"
+      ],
+      "notes": "Reference only pending a physical measurement of connector geometry."
+    }
+  }
+}

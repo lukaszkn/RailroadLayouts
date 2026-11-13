@@ -1,0 +1,9 @@
+[project]
+name = "tillig-tt-layouts"
+version = "1.0.0"
+description = "Factory-length Tillig TT Modellgleis layout generator"
+requires-python = ">=3.12"
+dependencies = ["pillow>=11.3,<13", "shapely>=2.1,<3"]
+
+[tool.uv]
+package = false

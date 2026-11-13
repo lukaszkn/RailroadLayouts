@@ -1,0 +1,16 @@
+{
+  "width_cm": 160,
+  "height_cm": 120,
+  "count": 10,
+  "mode": "mixed",
+  "strategy": "balanced",
+  "train_length_cm": 25,
+  "seed": 42,
+  "vehicle_group": "B",
+  "edge_margin_mm": 35,
+  "parts": {
+    "83100": {"enabled": true, "max_count": 5},
+    "83331": {"enabled": true},
+    "83332": {"enabled": false}
+  }
+}
