@@ -268,6 +268,20 @@ class LayoutTests(unittest.TestCase):
                 collected = drawings / f"0{plan}-layout.jpg"
                 self.assertEqual(collected.read_bytes(), original.read_bytes())
 
+    def test_export_drawing_with_crowded_piece_labels(self):
+        cfg = self.config_for(mode="double", count=1)
+        layout = Layout(self.catalog, "double", "parallel", "Parallel straights", "")
+        short_straights = (Step("83120"),) * 25
+        for name, y in (("Outer main", 540), ("Inner main", 583)):
+            layout.add(name, layout.lay(Pose(550, y), short_straights), "loop")
+
+        with TemporaryDirectory() as root:
+            path = Path(root) / "plans"
+            write_run([layout], Counter(), cfg, path)
+            with Image.open(path / "01-double" / "layout.jpg") as image:
+                self.assertEqual((image.format, image.size), ("JPEG", (3000, 2360)))
+                image.verify()
+
     def test_shortfall_report(self):
         with TemporaryDirectory() as root:
             path = Path(root) / "partial"

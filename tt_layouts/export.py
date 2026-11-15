@@ -5,7 +5,7 @@ from dataclasses import asdict
 import csv
 import json
 import logging
-from math import cos, radians, sin
+from math import ceil, cos, floor, radians, sin
 from pathlib import Path
 from shutil import copyfile
 import textwrap
@@ -46,6 +46,23 @@ def _route_colors(layout):
                 color = "inner" if track.name == "Inner main" else "main"
             result[(move.piece, f"{route.start}-{route.end}")] = COLORS[color]
     return result
+
+
+def _label_positions(x, y, normal, bounds):
+    left, top, right, bottom = bounds
+    nx, ny = normal
+    for distance in (20, 27, 37, 48, 62, 82, 110):
+        for sign in (-1, 1):
+            for shift in (0, -22, 22, -45, 45, -68, 68):
+                tx = x + sign*nx*distance + ny*shift
+                ty = y + sign*ny*distance - nx*shift
+                if left <= tx <= right and top <= ty <= bottom:
+                    yield tx, ty
+
+    # If the nearby positions are blocked, sample the full drawing area.
+    positions = ((tx, ty) for tx in range(ceil(left), floor(right) + 1, 12)
+                 for ty in range(ceil(top), floor(bottom) + 1, 12))
+    yield from sorted(positions, key=lambda point: (point[0] - x)**2 + (point[1] - y)**2)
 
 
 def _drawing(layout, cfg, number, target):
@@ -127,17 +144,9 @@ def _drawing(layout, cfg, number, target):
         label = f"{i+1:02d}  {piece.part.code}"
         w = draw.textlength(label, font=font)/2 + 5
         h = 13
-        positions = []
-        for distance in (20, 27, 37, 48, 62, 82, 110):
-            for sign in (-1, 1):
-                for shift in (0, -22, 22, -45, 45, -68, 68):
-                    tx = x + sign*normal[0]*distance + normal[1]*shift
-                    ty = y + sign*normal[1]*distance - normal[0]*shift
-                    positions.append((tx, ty, distance))
-        for tx, ty, distance in positions:
+        bounds = (90 + w, 255 + h, width - 90 - w, 1910 - h)
+        for tx, ty in _label_positions(x, y, normal, bounds):
             box = (tx-w, ty-h, tx+w, ty+h)
-            if box[0]<90 or box[1]<255 or box[2]>width-90 or box[3]>1910:
-                continue
             if any(box[0] < b[2]+3 and box[2] > b[0]-3 and box[1] < b[3]+3 and box[3] > b[1]-3 for b in occupied):
                 continue
             if rails.crop(tuple(map(int, box))).getbbox():

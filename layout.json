@@ -1,7 +1,7 @@
 {
   "width_cm": 160,
   "height_cm": 120,
-  "count": 10,
+  "count": 20,
   "mode": "mixed",
   "strategy": "balanced",
   "train_length_cm": 25,
@@ -9,11 +9,11 @@
   "vehicle_group": "B",
   "edge_margin_mm": 35,
   "require_connected_tracks": true,
-  "min_turnouts": 1,
+  "min_turnouts": 3,
   "max_turnouts": 10,
   "parts": {
     "83100": {"enabled": true, "max_count": 5},
     "83331": {"enabled": true},
-    "83332": {"enabled": false}
+    "83332": {"enabled": true}
   }
 }
