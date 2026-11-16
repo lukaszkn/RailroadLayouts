@@ -5,7 +5,7 @@ import json
 import math
 
 MODES = ("single", "passing", "double", "mixed")
-STRATEGIES = ("balanced", "longest", "shunting", "fewest_parts")
+STRATEGIES = ("balanced", "longest", "longest_tracks", "shunting", "fewest_parts")
 
 
 @dataclass(frozen=True)

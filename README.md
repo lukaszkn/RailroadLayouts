@@ -14,6 +14,7 @@ uv run --locked python -m tt_layouts --output output/my-layouts
 uv run --locked python -m tt_layouts --mode passing --train-length-cm 30 --count 4 --output output/station
 uv run --locked python -m tt_layouts --mode double --strategy longest --output output/double-main
 uv run --locked python -m tt_layouts --strategy longest --output output/longest
+uv run --locked python -m tt_layouts --strategy longest_tracks --output output/longest-tracks
 uv run --locked python -m unittest discover -s tests -v
 ```
 
@@ -32,13 +33,15 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 | `require_connected_tracks` | `true` | Requires a traversable connection between all tracks in each plan. Set to `false` to allow independent loops. |
 | `min_turnouts` | 1 | Minimum number of turnouts in each plan. Set to `0` to disable the minimum. |
 | `max_turnouts` | 10 | Maximum number of turnouts in each plan. Must be at least `min_turnouts`. |
-| `strategy` | `balanced` | Diversifies operating formations. `longest` ranks by continuous lap, `shunting` by total usable freight storage, and `fewest_parts` by track piece count. |
+| `strategy` | `balanced` | Diversifies operating formations. `longest` ranks by continuous lap, `longest_tracks` by total installed track length, `shunting` by total usable freight storage, and `fewest_parts` by track piece count. |
 | `train_length_cm` | 25 | Complete train including locomotive. Both station tracks must hold this length in passing mode. Double mode requires at least this much parallel running track. |
 | `vehicle_group` | B | MOROP vehicle group A, B, or C for radius and clearance |
 | `edge_margin_mm` | 35 | Minimum distance from track centerline to board edge |
 | `seed` | 42 | Repeatable ordering of otherwise tied layouts |
 
 Set `"min_turnouts": 5` and `"max_turnouts": 8` in `layout.json` to require five to eight turnouts per plan, inclusive. The generator counts one turnout per drive listed in the catalog. A double crossover counts as four, a three-way turnout or double slip counts as two, and a fixed crossing counts as zero. If too few plans meet the turnout limits, the generator reports a shortfall.
+
+`longest_tracks` counts both main lines, sidings, yard roads, passing tracks, and all routes through installed pointwork. It counts shared centerline sections once and includes the track up to each buffer stop. The search also tries long interior sidings and additional yard roads where stock and board dimensions allow.
 
 With `"ignore_similar_percentage": 0.05`, the generator skips a plan when it has the same named tracks as an earlier selected plan of the same mode and every corresponding length is within 5% of that plan's track length. A double-track plan with a goods road and one with only the two laps can both be selected. If too few plans meet the requested diversity, the run reports a shortfall.
 
@@ -60,7 +63,7 @@ Absent rules allow any quantity. `max_count: null` means unlimited, and `max_cou
 
 Browse the `all/` folder in a generated run to see every drawing in plan order. Filenames use three-digit numbering, such as `001-single-layout.jpg`.
 
-Open the output `index.md` to compare operating moves, usable track lengths and motor counts. The 3000 × 2360 JPG shows a board outline, centimetre grid, scale bar, joints and one label per physical piece. The first number in a label is the placement ID. The second is the Tillig SKU. Each `shopping.csv` lists actual piece quantities and an under-baseboard motor option where needed. Buy against the list for the alternative you choose. `placement.json` gives origin, rotation, connector poses, traversable routes, and the measured joint residuals in millimetres and degrees.
+Open the output `index.md` to compare operating moves, total track length, longest lap, usable track lengths, and motor counts. The total also appears as `total_track_length_mm` in `run.json` and `placement.json`. The 3000 × 2360 JPG shows a board outline, centimetre grid, scale bar, joints and one label per physical piece. The first number in a label is the placement ID. The second is the Tillig SKU. Each `shopping.csv` lists actual piece quantities and an under-baseboard motor option where needed. Buy against the list for the alternative you choose. `placement.json` gives origin, rotation, connector poses, traversable routes, and the measured joint residuals in millimetres and degrees.
 
 Track plans assume DCC. On double-track designs with a crossover, simultaneous circulation uses the two through routes. Stop conflicting movements before lining the crossover diagonally. Pointwork manuals cover frog wiring, insulation and installation of drives. Add power feeds, wiring and other electrical supplies for your installation.
 

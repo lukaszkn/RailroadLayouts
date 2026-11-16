@@ -1,18 +1,20 @@
 """Search stock track formations. Each candidate uses the same independent validator."""
 
 from collections import Counter
+from dataclasses import dataclass
 from functools import lru_cache
-from itertools import cycle, islice, product
+from itertools import cycle, groupby, islice, product
 import logging
 from math import ceil
 from random import Random
 
 from .config import MODES
-from .geometry import Pose, Step, min_radius, spacing
-from .inventory import repartition
-from .model import Layout, equivalent, validate
+from .geometry import Pose, Step, angle_delta, min_radius, spacing
+from .inventory import rebuild, repartition
+from .model import Layout, Move, equivalent, validate
 
 BUFFER = Step("83100", "a-stop")
+_YARD_BASE_FAMILIES = {"diagonal", "passing_oval", "passing_rectangle", "crossover", "parallel"}
 logger = logging.getLogger(__name__)
 
 
@@ -99,7 +101,7 @@ class Stock:
             value -= step
 
     def side_lengths(self, available, defaults):
-        if self.cfg.strategy == "longest":
+        if self.cfg.strategy in ("longest", "longest_tracks"):
             longest = next(self.runs(0, available), None)
             if longest and longest[0] not in defaults:
                 return (*defaults, longest[0])
@@ -501,7 +503,105 @@ def specialty_modes(stock):
                 yield layout
 
 
+@dataclass(frozen=True)
+class _YardBase:
+    layout: Layout
+    parent: int
+    run: tuple[Move, ...]
+    span: float
+    depth: float
+
+
+def _keep_yard_base(layout, bases):
+    if layout.family not in _YARD_BASE_FAMILIES:
+        return
+    parent = max(i for i, track in enumerate(layout.tracks) if track.kind == "loop")
+    loop = layout.tracks[parent]
+
+    # These backbones start on the eastbound straight in local coordinates.
+    def on_return(move):
+        return (layout.pieces[move.piece].part.kind == "straight"
+                and abs(angle_delta(layout.port(move, True).heading, 180)) < 1e-6)
+
+    runs = (tuple(moves) for on_straight, moves in groupby(loop.moves, key=on_return) if on_straight)
+    options = ((sum(layout.route(move).length for move in run), run) for run in runs)
+    span, run = max(options, key=lambda option: option[0], default=(0, ()))
+    if not run:
+        return
+    front_y = layout.port(loop.moves[0]).y
+    depth = layout.port(run[0]).y - front_y
+    passing_inside = any(track.kind == "passing" and layout.port(track.moves[0], True).y > front_y
+                         for track in layout.tracks)
+    band = (layout.family, round(span / 83), round(depth / 83), passing_inside)
+    shelf = bases.setdefault(band, [])
+    shelf.append((layout.total_track_length_mm, _YardBase(layout, parent, run, span, depth)))
+    shelf.sort(key=lambda row: row[0], reverse=True)
+    del shelf[4:]
+
+
+def _yard_entries(stock):
+    if not stock.available(BUFFER) or not stock.cfg.max_turnouts:
+        return
+    for point in stock.catalog.values():
+        if (point.kind != "turnout" or not stock.cfg.available(point.code)
+                or point.radius < min_radius(stock.cfg.vehicle_group) or point.ports["c"].y <= 0):
+            continue
+        start = _end(stock, Pose(), (Step(point.code, "a-c"),))
+        approaches = []
+        for steps in _branches(stock, point):
+            offset = _end(stock, start, steps)
+            min_curve = min(stock.catalog[step.code].radius for step in steps)
+            clearance = spacing(stock.cfg.vehicle_group, min(point.radius, min_curve))
+            if offset.y >= clearance + 5:
+                approaches.append((offset, steps, clearance))
+        if approaches:
+            offset, steps, clearance = min(approaches, key=lambda option: option[0].x)
+            yield Step(point.code), steps, offset, clearance
+
+
+def _interior_yards(base, stock, entries):
+    buffer_length = mm((BUFFER,), stock.catalog)
+    switch_index = base.layout.tracks[base.parent].moves.index(base.run[0])
+    for point, approach, offset, clearance in entries:
+        point_length = mm((point,), stock.catalog)
+        suffix = stock.straight(base.span - point_length)
+        if suffix is None:
+            continue
+        road_limit = min(stock.cfg.max_turnouts, int(max(0, base.depth - clearance) / offset.y),
+                         int(max(0, base.span - buffer_length) / offset.x))
+        for road_count, shorter_by in product(range(1, road_limit + 1), (0, 83)):
+            tails = []
+            for road_index in range(road_count):
+                room = base.span - shorter_by - (road_index + 1) * offset.x - buffer_length
+                if road_index < road_count - 1:
+                    room -= point_length
+                tail = next(stock.runs(0, room), None)
+                if tail is None:
+                    break
+                tails.append(tail[1])
+            if len(tails) != road_count:
+                continue
+
+            plan = rebuild(base.layout, {base.run[0]: (base.run, (point,) + suffix)})
+            plan.family += "_interior"
+            plan.title = f"{plan.title} with interior {'siding' if road_count == 1 else 'yard'}"
+            plan.instructions += " Keep the running route clear when switching the interior roads."
+            parent = base.parent
+            switch = plan.tracks[parent].moves[switch_index]
+            for road_number, tail in enumerate(tails, 1):
+                name = f"Interior road {road_number}"
+                if road_number == road_count:
+                    spur(plan, switch, approach + tail, name, parent)
+                else:
+                    road = from_port(plan, switch, approach + (point,) + tail + (BUFFER,))
+                    parent = plan.add(name, road, "spur", parent)
+                    switch = road[len(approach) + 1]
+            yield plan
+
+
 def score(layout, strategy):
+    if strategy == "longest_tracks":
+        return (layout.total_track_length_mm, layout.lap, -len(layout.pieces))
     usable = sum(layout.lengths[t.name] for t in layout.tracks if t.kind == "spur")
     siding = sum(t.kind == "spur" for t in layout.tracks)
     pieces = len(layout.pieces)
@@ -517,9 +617,10 @@ def score(layout, strategy):
 def _estimate(layout, cfg):
     lengths = [layout.length_for_track(t) for t in layout.tracks if t.kind == "loop"]
     layout.lengths["lap"] = max(lengths)
-    for track in layout.tracks:
-        if track.kind == "spur":
-            layout.lengths[track.name] = max(0, layout.length_for_track(track) - 150)
+    if cfg.strategy != "longest_tracks":
+        for track in layout.tracks:
+            if track.kind == "spur":
+                layout.lengths[track.name] = max(0, layout.length_for_track(track) - 150)
     return score(layout, cfg.strategy)
 
 
@@ -591,8 +692,38 @@ def _rank_layouts(unique, strategy):
     return layouts
 
 
+def _select_layouts(valid, cfg):
+    filtered = Counter()
+    if cfg.ignore_similar_percentage:
+        valid = _filter_similar_lengths(valid, cfg, filtered)
+    return valid, filtered
+
+
+def _longest_track_batch(shelves, stock, rejected, mode):
+    cfg = stock.cfg
+    candidates = sorted((row for shelf in shelves.values() for row in shelf),
+                        key=lambda row: row[:2], reverse=True)
+    shelves.clear()
+    unique = {}
+    # Validation preserves the estimated length without sectional changes.
+    # Finish each equal-length group so its lap and piece-count ties can compete.
+    for _, group in groupby(candidates, key=lambda row: row[0][0]):
+        _check_shelf(group, stock, {}, unique, rejected, None)
+        if sum(map(len, unique.values())) >= cfg.count:
+            selected, filtered = _select_layouts(_rank_layouts(unique, cfg.strategy), cfg)
+            if len(selected) >= cfg.count:
+                break
+    else:
+        selected, filtered = _select_layouts(_rank_layouts(unique, cfg.strategy), cfg)
+    logger.info("Found %d distinct valid %s layouts", sum(map(len, unique.values())), mode)
+    return selected, filtered
+
+
 def _layout_batches(shelves, stock, sectional, rejected, mode):
     cfg = stock.cfg
+    if cfg.strategy == "longest_tracks" and not sectional:
+        yield _longest_track_batch(shelves, stock, rejected, mode)
+        return
     unique = {}
     pending = [iter(sorted(shelf, key=lambda row: row[:2], reverse=True)) for shelf in shelves.values()]
     shelves.clear()
@@ -605,8 +736,7 @@ def _layout_batches(shelves, stock, sectional, rejected, mode):
         if not cfg.ignore_similar_percentage:
             yield valid, Counter()
             return
-        filtered = Counter()
-        selected = _filter_similar_lengths(valid, cfg, filtered)
+        selected, filtered = _select_layouts(valid, cfg)
         yield selected, filtered
         if len(selected) == cfg.count or not pending:
             return
@@ -619,6 +749,18 @@ def _fill_from_batches(batches, count, current=None):
         if len(current[0]) >= count:
             break
     return current
+
+
+def _shelve(candidate, cfg, sectional, shelves, rng, rejected):
+    inventory = candidate.inventory
+    failure = next((f"inventory limit for {code}" for code, limit in cfg.parts.items()
+                    if code not in sectional and not limit.allows(inventory[code])), None)
+    if failure:
+        rejected[failure] += 1
+        return
+    # Sort lightweight candidates before invoking GEOS, grouping by topology.
+    estimate = _estimate(candidate, cfg)
+    shelves.setdefault(candidate.family, []).append((estimate, rng.random(), candidate))
 
 
 def generate(catalog, cfg):
@@ -651,22 +793,20 @@ def generate(catalog, cfg):
     searches = []
     choices = []
     sectional = {code: limit for code, limit in cfg.parts.items() if catalog[code].kind in ("straight", "curve")}
+    yard_entries = tuple(_yard_entries(stock)) if cfg.strategy == "longest_tracks" else ()
     for index, mode in enumerate(modes):
         logger.info("Searching for %s track layouts", mode)
         shelves = {}
+        yard_bases = {}
         for source in mode_sources[mode]:
             for candidate in source(stock):
-                inventory = candidate.inventory
-                failure = next((f"inventory limit for {code}" for code, limit in cfg.parts.items()
-                                if code not in sectional
-                                if not limit.allows(inventory[code])), None)
-                if failure:
-                    rejected[failure] += 1
-                    continue
-                # Sort lightweight parametric candidates before invoking GEOS.
-                # Preserve representatives for each distinct topology.
-                estimate = _estimate(candidate, cfg)
-                shelves.setdefault(candidate.family, []).append((estimate, rng.random(), candidate))
+                if yard_entries:
+                    _keep_yard_base(candidate, yard_bases)
+                _shelve(candidate, cfg, sectional, shelves, rng, rejected)
+        for bases in yard_bases.values():
+            for _, base in bases:
+                for candidate in _interior_yards(base, stock, yard_entries):
+                    _shelve(candidate, cfg, sectional, shelves, rng, rejected)
         logger.info("Checking %s layouts from a pool of %d candidates",
                     mode, sum(len(shelf) for shelf in shelves.values()))
         batches = _layout_batches(shelves, stock, sectional, rejected, mode)
@@ -686,6 +826,9 @@ def generate(catalog, cfg):
     if cfg.mode != "mixed":
         return candidates[0][:cfg.count], rejected
     if cfg.strategy != "balanced":
+        if cfg.strategy == "longest_tracks":
+            # Preserve the seeded order within each mode and seed cross-mode ties too.
+            rng.shuffle(candidates)
         all_layouts = [layout for mode in candidates for layout in mode]
         return sorted(all_layouts, key=lambda v: score(v, cfg.strategy), reverse=True)[:cfg.count], rejected
     result = []

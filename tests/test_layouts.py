@@ -10,8 +10,8 @@ from PIL import Image
 
 from tt_layouts.config import Config, Limit, read_config
 from tt_layouts.export import write_run
-from tt_layouts.generate import Stock, _filter_similar_lengths, generate, specialty_modes
-from tt_layouts.geometry import Pose, Step, joint_fits, load_catalog
+from tt_layouts.generate import Stock, _filter_similar_lengths, generate, running_loop, score, specialty_modes, spur
+from tt_layouts.geometry import Part, Pose, Route, Segment, Step, joint_fits, load_catalog
 from tt_layouts.model import Layout, equivalent, validate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,6 +45,72 @@ class LayoutTests(unittest.TestCase):
         self.assertFalse(joint_fits(Pose(), Pose(0.3, 0.151, 180)))
         self.assertFalse(joint_fits(Pose(), Pose(0.3, 0.1, 180.11)))
         self.assertTrue(joint_fits(Pose(), Pose(0.5, 0.15, 180.1)))
+
+    def test_total_track_length_counts_physical_pointwork(self):
+        crossover = self.catalog["83212"]
+        self.assertAlmostEqual(crossover.track_length_mm, sum(route.length for route in crossover.routes.values()))
+        self.assertGreater(crossover.track_length_mm, 2 * 251)
+        slip = self.catalog["83300"]
+        shared_length = 4 * slip.routes["a-d"].segments[0].distance
+        self.assertAlmostEqual(slip.track_length_mm,
+                               sum(route.length for route in slip.routes.values()) - shared_length)
+
+        # The shorter route traverses the first half of the arc in reverse.
+        arc = Segment(radius=310, sweep=60)
+        start = Pose(0, 0, 65)
+        halfway = arc.advance(start, .5)
+        overlapping = Part("arc", {}, {"a": start.turned(180), "c": halfway}, {
+            "a-b": Route("a", "b", (arc,)),
+            "c-a": Route("c", "a", (Segment(radius=310, sweep=-30),)),
+        }, None)
+        self.assertAlmostEqual(overlapping.track_length_mm, arc.distance)
+
+        layout = Layout(self.catalog, "double", "", "", "")
+        crossing, = layout.lay(Pose(), (Step("83212"),))
+        layout.add("Outer main", (crossing,), "loop")
+        layout.add("Inner main", (layout.branch(crossing, "c", "d"),), "loop")
+        layout.lay(Pose(), (Step("83100", "a-stop"),))
+        self.assertAlmostEqual(layout.total_track_length_mm, crossover.track_length_mm + 41.5)
+
+    def test_longest_tracks_prefers_more_track_with_a_shorter_lap(self):
+        stock = Stock(self.catalog, self.config)
+
+        def plan(span, tail):
+            layout = Layout(self.catalog, "single", "", "", "")
+            bend = stock.curve(353, 90)
+            top, rest = running_loop(layout, Pose(), (Step("83331"),) + stock.straight(span - 166),
+                                     stock.straight(span), bend)
+            main = layout.add("Main line", top + rest, "loop")
+            spur(layout, top[0], stock.straight(tail), "Goods road", main)
+            self.assertIsNone(validate(layout, self.config))
+            return layout
+
+        longer_lap = plan(498, 166)
+        longer_track = plan(415, 415)
+        self.assertGreater(score(longer_lap, "longest"), score(longer_track, "longest"))
+        self.assertGreater(score(longer_track, "longest_tracks"), score(longer_lap, "longest_tracks"))
+
+    def test_longest_tracks_searches_multiple_interior_roads(self):
+        limits = {code: Limit(enabled=False) for code, part in self.catalog.items()
+                  if (part.kind == "curve" and part.radius not in (310, 353))
+                  or (part.kind not in ("straight", "curve", "buffer", "reference")
+                      and code not in ("83329", "83331", "83212"))}
+        limits["83100"] = Limit(max_count=3)
+        for mode, turnouts in (("single", 3), ("passing", 4), ("double", 6)):
+            with self.subTest(mode=mode):
+                cfg = self.config_for(width_cm=150, height_cm=90, count=3, mode=mode,
+                                      strategy="longest_tracks", min_turnouts=turnouts,
+                                      max_turnouts=turnouts, parts=limits)
+                plans, _ = generate(self.catalog, cfg)
+                self.assertEqual(len(plans), 3)
+                lengths = [plan.total_track_length_mm for plan in plans]
+                self.assertEqual(lengths, sorted(lengths, reverse=True))
+                for plan in plans:
+                    self.assertIn("Interior road 2", plan.lengths)
+                    self.assertLessEqual(plan.inventory["83100"], 3)
+                    drive_counts = (quantity * self.catalog[code].data.get("point_drive", {}).get("quantity", 0)
+                                    for code, quantity in plan.inventory.items())
+                    self.assertEqual(sum(drive_counts), turnouts)
 
     def test_require_connected_tracks_config(self):
         with TemporaryDirectory() as root:
@@ -259,7 +325,7 @@ class LayoutTests(unittest.TestCase):
                                    plan(Pose(35, 72, 180), (Step("83112"), Step("83112")))))
 
     def test_ranking_repeatability_and_order(self):
-        for strategy in ("longest", "fewest_parts", "shunting"):
+        for strategy in ("longest", "longest_tracks", "fewest_parts", "shunting"):
             with self.subTest(strategy=strategy):
                 cfg = self.config_for(mode="double", width_cm=125, height_cm=90, count=3, strategy=strategy)
                 first, _ = generate(self.catalog, cfg)
@@ -270,6 +336,9 @@ class LayoutTests(unittest.TestCase):
                 self.assertEqual([p.inventory for p in first], [p.inventory for p in second])
                 if strategy == "longest":
                     self.assertEqual([p.lap for p in first], sorted((p.lap for p in first), reverse=True))
+                if strategy == "longest_tracks":
+                    lengths = [p.total_track_length_mm for p in first]
+                    self.assertEqual(lengths, sorted(lengths, reverse=True))
                 if strategy == "fewest_parts":
                     self.assertEqual([len(p.pieces) for p in first], sorted(len(p.pieces) for p in first))
 
@@ -296,10 +365,18 @@ class LayoutTests(unittest.TestCase):
             drawings = path / "all"
             self.assertEqual(sorted(drawing.name for drawing in drawings.iterdir()),
                              ["001-single-layout.jpg", "002-passing-layout.jpg"])
-            for plan in ("01-single", "02-passing"):
+            report = json.loads((path / "run.json").read_text())
+            index = (path / "index.md").read_text()
+            for layout, row in zip(self.examples[:2], report["layouts"], strict=True):
+                plan = row["plan"]
                 original = path / plan / "layout.jpg"
                 collected = drawings / f"0{plan}-layout.jpg"
                 self.assertEqual(collected.read_bytes(), original.read_bytes())
+                placement = json.loads((path / plan / "placement.json").read_text())
+                total = round(layout.total_track_length_mm, 2)
+                self.assertEqual(row["total_track_length_mm"], total)
+                self.assertEqual(placement["total_track_length_mm"], total)
+                self.assertIn(f"Total track {total / 10:.1f} cm", index)
 
     def test_export_drawing_with_crowded_piece_labels(self):
         cfg = self.config_for(mode="double", count=1)

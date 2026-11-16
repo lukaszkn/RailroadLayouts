@@ -270,6 +270,7 @@ def _write_outputs(layouts, rejected, cfg, directory):
                    for key in ("longitudinal_mm", "lateral_mm", "angular_deg")}
         row = dict(plan=stem, title=layout.title, mode=layout.mode, operations=layout.instructions,
                    pieces=len(layout.pieces), longest_lap_mm=round(layout.lap, 2),
+                   total_track_length_mm=round(layout.total_track_length_mm, 2),
                    track_lengths_mm={name:round(length, 2) for name, length in layout.lengths.items()},
                    parallel_straight_mm=round(layout.parallel_mm, 2), point_drives=dict(drives),
                    maximum_joint_residuals=largest)
@@ -304,6 +305,7 @@ def _write_outputs(layouts, rejected, cfg, directory):
             usable.append(f"Parallel straight {_units(row['parallel_straight_mm'])}")
         lines.extend([f"## {stem} · {row['title']}", "", row["operations"], "",
                       "   ·   ".join([f"Longest lap {_units(row['longest_lap_mm'])}",
+                                   f"Total track {_units(row['total_track_length_mm'])}",
                                    f"{row['pieces']} track pieces", f"{drives} turnout drive{'s' if drives != 1 else ''}", *usable]), "",
                       f"[JPG]({stem}/layout.jpg) · [Shopping list]({stem}/shopping.csv) · [Placement data]({stem}/placement.json)", ""])
     (directory/"index.md").write_text("\n".join(lines), encoding="utf-8")

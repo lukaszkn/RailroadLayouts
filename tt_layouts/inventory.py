@@ -98,7 +98,7 @@ def repartition(layout, stock, initial_counts):
             replacements[moves[0]] = moves, tuple(Step(code, mirror=mirror) for code in codes)
     if not replacements:
         return layout
-    return _rebuild(layout, replacements)
+    return rebuild(layout, replacements)
 
 
 def _amount(layout, moves, kind):
@@ -113,7 +113,8 @@ def _sizes(stock, family):
     return stock.curves[family[1]]
 
 
-def _rebuild(layout, replacements):
+def rebuild(layout, replacements):
+    """Replace runs in a new layout, preserving track indices and shared pieces."""
     updated = Layout(layout.catalog, layout.mode, layout.family, layout.title, layout.instructions)
     updated.parallel_mm = layout.parallel_mm
     placed = {}

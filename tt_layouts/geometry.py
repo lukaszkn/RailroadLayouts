@@ -1,9 +1,10 @@
 """Rigid track geometry in board millimetres, with Y increasing down the drawing."""
 
+from collections import defaultdict
 import json
 from dataclasses import dataclass
 from functools import cached_property
-from math import ceil, cos, hypot, isfinite, radians, sin
+from math import ceil, copysign, cos, fsum, hypot, inf, isfinite, radians, sin
 from pathlib import Path
 
 from shapely.geometry import LineString
@@ -85,6 +86,44 @@ class Part:
             (s.radius for route in self.routes.values() for s in route.segments if s.radius),
             default=float("inf"),
         ))
+
+    @cached_property
+    def track_length_mm(self):
+        length = fsum(route.length for route in self.routes.values())
+        if len(self.routes) < 2:
+            return length
+
+        # Coincident segments share a supporting line or circle. Crossings at
+        # a single point have no length, even when their movements conflict.
+        intervals = defaultdict(list)
+        for route in self.routes.values():
+            start = self.ports[route.start].turned(180)
+            for segment in route.segments:
+                if segment.radius:
+                    side = copysign(1, segment.sweep)
+                    center = start.local(Pose(0, side * segment.radius))
+                    key = ("arc", round(center.x, 7), round(center.y, 7), segment.radius)
+                    angle = start.heading - side * 90 + min(0, segment.sweep)
+                    low = angle % 360
+                    high = low + abs(segment.sweep)
+                    intervals[key].append((radians(low) * segment.radius,
+                                           radians(min(high, 360)) * segment.radius))
+                    if high > 360:
+                        intervals[key].append((0, radians(high - 360) * segment.radius))
+                else:
+                    angle = radians(round(start.heading % 180, 7) % 180)
+                    key = ("line", angle, round(-start.x * sin(angle) + start.y * cos(angle), 7))
+                    low = start.x * cos(angle) + start.y * sin(angle)
+                    high = low + copysign(segment.length, cos(radians(start.heading) - angle))
+                    intervals[key].append((min(low, high), max(low, high)))
+                start = segment.advance(start)
+
+        for ranges in intervals.values():
+            end = -inf
+            for low, high in sorted(ranges):
+                length -= max(0, min(end, high) - low)
+                end = max(end, high)
+        return length
 
 
 def load_catalog(path: Path):

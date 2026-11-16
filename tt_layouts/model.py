@@ -3,6 +3,7 @@
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from itertools import combinations, groupby, pairwise
+from math import fsum
 
 import numpy as np
 import shapely
@@ -89,6 +90,10 @@ class Layout:
     @property
     def inventory(self):
         return Counter(piece.part.code for piece in self.pieces)
+
+    @property
+    def total_track_length_mm(self):
+        return fsum(piece.part.track_length_mm for piece in self.pieces)
 
     @property
     def lap(self):
