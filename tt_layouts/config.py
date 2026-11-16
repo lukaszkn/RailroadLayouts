@@ -36,6 +36,7 @@ class Config:
     min_turnouts: int = 1
     max_turnouts: int = 10
     ignore_similar_percentage: float = 0.0
+    optimize_track_parts: bool = True
 
     @property
     def width(self):
@@ -89,8 +90,9 @@ def read_config(path, catalog, overrides=None):
         raise ValueError("edge_margin_mm must leave at least 12 mm from centerline to the board edge")
     if type(result.count) is not int or result.count < 1 or type(result.seed) is not int:
         raise ValueError("count must be a positive integer and seed must be an integer")
-    if type(result.require_connected_tracks) is not bool:
-        raise ValueError("require_connected_tracks must be a boolean")
+    for key in ("require_connected_tracks", "optimize_track_parts"):
+        if type(getattr(result, key)) is not bool:
+            raise ValueError(f"{key} must be a boolean")
     tolerance = result.ignore_similar_percentage
     if type(tolerance) not in (int, float) or not 0 <= tolerance <= 1:
         raise ValueError("ignore_similar_percentage must be a number between 0 and 1")

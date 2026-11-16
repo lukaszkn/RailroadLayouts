@@ -45,6 +45,7 @@
       "name_en": "Straight track G1",
       "name_pl": "Tor prosty G1",
       "kind": "straight",
+      "unit_price_eur_cents": 280,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83101.html",
       "dimensions": {
         "length_mm": 166
@@ -80,6 +81,7 @@
       "name_en": "Straight track G2",
       "name_pl": "Tor prosty G2",
       "kind": "straight",
+      "unit_price_eur_cents": 290,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83102.html",
       "dimensions": {
         "length_mm": 83
@@ -115,6 +117,7 @@
       "name_en": "Straight track G4",
       "name_pl": "Tor prosty G4",
       "kind": "straight",
+      "unit_price_eur_cents": 290,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83103.html",
       "dimensions": {
         "length_mm": 41.5
@@ -150,6 +153,7 @@
       "name_en": "Straight track G5",
       "name_pl": "Tor prosty G5",
       "kind": "straight",
+      "unit_price_eur_cents": 290,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83104.html",
       "dimensions": {
         "length_mm": 36.5
@@ -185,6 +189,7 @@
       "name_en": "Straight track G3",
       "name_pl": "Tor prosty G3",
       "kind": "straight",
+      "unit_price_eur_cents": 290,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83105.html",
       "dimensions": {
         "length_mm": 43
@@ -220,6 +225,7 @@
       "name_en": "Curved track R21",
       "name_pl": "Tor łukowy R21",
       "kind": "curve",
+      "unit_price_eur_cents": 340,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83106.html",
       "dimensions": {
         "radius_mm": 353,
@@ -259,6 +265,7 @@
       "name_en": "Curved track R22",
       "name_pl": "Tor łukowy R22",
       "kind": "curve",
+      "unit_price_eur_cents": 311,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83107.html",
       "dimensions": {
         "radius_mm": 353,
@@ -298,6 +305,7 @@
       "name_en": "Curved track R11",
       "name_pl": "Tor łukowy R11",
       "kind": "curve",
+      "unit_price_eur_cents": 340,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83109.html",
       "dimensions": {
         "radius_mm": 310,
@@ -337,6 +345,7 @@
       "name_en": "Curved track R12",
       "name_pl": "Tor łukowy R12",
       "kind": "curve",
+      "unit_price_eur_cents": 311,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83110.html",
       "dimensions": {
         "radius_mm": 310,
@@ -376,6 +385,7 @@
       "name_en": "Curved track R31",
       "name_pl": "Tor łukowy R31",
       "kind": "curve",
+      "unit_price_eur_cents": 340,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83111.html",
       "dimensions": {
         "radius_mm": 396,
@@ -415,6 +425,7 @@
       "name_en": "Curved track R32",
       "name_pl": "Tor łukowy R32",
       "kind": "curve",
+      "unit_price_eur_cents": 311,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83112.html",
       "dimensions": {
         "radius_mm": 396,
@@ -454,6 +465,7 @@
       "name_en": "Curved track R14",
       "name_pl": "Tor łukowy R14",
       "kind": "curve",
+      "unit_price_eur_cents": 311,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83113.html",
       "dimensions": {
         "radius_mm": 310,
@@ -493,6 +505,7 @@
       "name_en": "Curved track R24",
       "name_pl": "Tor łukowy R24",
       "kind": "curve",
+      "unit_price_eur_cents": 311,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83114.html",
       "dimensions": {
         "radius_mm": 353,
@@ -532,6 +545,7 @@
       "name_en": "Curved track R04",
       "name_pl": "Tor łukowy R04",
       "kind": "curve",
+      "unit_price_eur_cents": 311,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83115.html",
       "dimensions": {
         "radius_mm": 267,
@@ -572,6 +586,7 @@
       "name_en": "Curved track R01",
       "name_pl": "Tor łukowy R01",
       "kind": "curve",
+      "unit_price_eur_cents": 340,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83116.html",
       "dimensions": {
         "radius_mm": 267,
@@ -612,6 +627,7 @@
       "name_en": "Straight track G6",
       "name_pl": "Tor prosty G6",
       "kind": "straight",
+      "unit_price_eur_cents": 290,
       "product_url": "https://www.tillig.com/Produkte/produktinfo-83120.html",
       "dimensions": {
         "length_mm": 21.3

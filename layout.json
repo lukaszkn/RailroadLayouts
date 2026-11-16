@@ -10,6 +10,7 @@
   "edge_margin_mm": 35,
   "ignore_similar_percentage": 0.10,
   "require_connected_tracks": true,
+  "optimize_track_parts": true,
   "min_turnouts": 3,
   "max_turnouts": 10,
   "parts": {

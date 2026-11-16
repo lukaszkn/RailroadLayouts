@@ -132,6 +132,9 @@ def load_catalog(path: Path):
         raise ValueError("Expected the 12 mm gauge Tillig TT Modellgleis catalog")
     catalog = {}
     for code, data in raw["parts"].items():
+        price = data.get("unit_price_eur_cents")
+        if price is not None and (type(price) is not int or price < 0):
+            raise ValueError(f"{code} unit_price_eur_cents must be a non-negative integer")
         ports = {key: from_json(value) for key, value in data.get("connectors", {}).items()}
         routes = {}
         stop = from_json(data["stop"]) if "stop" in data else None

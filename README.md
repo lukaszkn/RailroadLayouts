@@ -31,6 +31,7 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 | `ignore_similar_percentage` | 0 | Track length tolerance as a fraction from `0` to `1`. The included `layout.json` uses `0.10` (10%). `0` disables the filter. |
 | `mode` | `mixed` | `single` for a main line with freight switching, `passing` for two trains to meet, or `double` for simultaneous running on two closed routes |
 | `require_connected_tracks` | `true` | Requires a traversable connection between all tracks in each plan. Set to `false` to allow independent loops. |
+| `optimize_track_parts` | `true` | Chooses cheaper combinations of straight and curved pieces that preserve the assembled geometry and meet the SKU limits. Set to `false` to use the original stock selection and inventory repair. |
 | `min_turnouts` | 1 | Minimum number of turnouts in each plan. Set to `0` to disable the minimum. |
 | `max_turnouts` | 10 | Maximum number of turnouts in each plan. Must be at least `min_turnouts`. |
 | `strategy` | `balanced` | Diversifies operating formations. `longest` ranks by continuous lap, `longest_tracks` by total installed track length, `shunting` by total usable freight storage, and `fewest_parts` by track piece count. |
@@ -58,6 +59,21 @@ The `parts` object applies to each alternative independently. This example requi
 ```
 
 Absent rules allow any quantity. `max_count: null` means unlimited, and `max_count: 0` forbids use. The generator can substitute enabled sectional pieces that preserve a straight or curve's geometry to meet inventory limits. The included sample enables 83331 without requiring it in every plan. Each SKU retains its actual turnout handedness.
+
+### Track part optimization
+
+The optimizer uses a snapshot of [Tillig's per-piece shop prices](https://shop.tillig.com/de/tt-modellbahnen/modellgleissystem/gleise/) from 16 November 2026. Prices are stored as `unit_price_eur_cents` in the catalog so generation works offline. Each plan minimizes the price of its eligible runs, then the number of pieces, subject to the plan's overall inventory limits. A custom catalog family needs prices for every enabled SKU to use price optimization.
+
+Straight runs must match in length. Curve runs must match in radius, turn direction, and total sweep. Pointwork, buffer stops, shared pieces, and joint gaps mark run boundaries. The optimizer can combine more pieces than the examples below when their geometry matches exactly.
+
+| Track | Example substitutions |
+|---|---|
+| Straights | 2 × G4 → G2 and 2 × G2 → G1. The 166 mm G2-to-G1 substitution saves €3.00 at the catalog prices. |
+| Mixed straights | 8 × G5 → G1 + G2 + G3 (292 mm) and 2 × G3 + 5 × G6 → G2 + 3 × G5 (192.5 mm). |
+| 267 mm curves in eligible sidings | 4 × R04 → R01. |
+| 310 mm curves | 2 × R14 → R12 and 2 × R12 → R11. |
+| 353 mm curves | 2 × R24 → R22 and 2 × R22 → R21. |
+| 396 mm curves | 2 × R32 → R31. |
 
 ## Build from a plan
 

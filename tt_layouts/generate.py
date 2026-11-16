@@ -10,7 +10,7 @@ from random import Random
 
 from .config import MODES
 from .geometry import Pose, Step, angle_delta, joint_fits, min_radius, spacing
-from .inventory import rebuild, repartition
+from .inventory import priced_families, rebuild, repartition
 from .model import Layout, Move, equivalent, turnout_count, validate
 
 BUFFER = Step("83100", "a-stop")
@@ -39,6 +39,8 @@ class Stock:
             if part.kind == "curve" and cfg.available(code) and part.radius >= min_radius(cfg.vehicle_group):
                 self.curves.setdefault(part.radius, []).append(
                     (round(abs(part.routes["a-b"].segments[0].sweep) * 2), code))
+        self.sectional_prices = priced_families(self) if cfg.optimize_track_parts else {}
+        self.sectional_recipes = {}
         # Reordering equal parts has no effect on placement.
         self._lengths = {0: ()}
         self._searched = 0
@@ -858,10 +860,18 @@ def _check_shelf(shelf, stock, sectional, unique, rejected, limit):
     cfg = stock.cfg
     accepted = 0
     for _, tie, layout in shelf:
-        if sectional:
-            layout = repartition(layout, stock, layout.inventory)
+        original = layout
+        if stock.sectional_prices or sectional:
+            inventory = layout.inventory
+            layout = repartition(layout, stock, inventory, by_price=bool(stock.sectional_prices))
         layout.lengths.clear()
         failure = validate(layout, cfg)
+        if failure and stock.sectional_prices:
+            fallback = repartition(original, stock, inventory) if sectional else original
+            if fallback is not layout:
+                layout = fallback
+                layout.lengths.clear()
+                failure = validate(layout, cfg)
         if failure:
             rejected[failure] += 1
             continue
@@ -913,7 +923,7 @@ def _longest_track_batch(shelves, stock, rejected, mode):
                         key=lambda row: row[:2], reverse=True)
     shelves.clear()
     unique = {}
-    # Validation preserves the estimated length without sectional changes.
+    # Exact sectional substitutions preserve the nominal estimated length.
     # Finish each equal-length group so its lap and piece-count ties can compete.
     for _, group in groupby(candidates, key=lambda row: row[0][0]):
         _check_shelf(group, stock, {}, unique, rejected, None)
