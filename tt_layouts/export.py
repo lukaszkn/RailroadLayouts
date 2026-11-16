@@ -44,6 +44,8 @@ def _route_colors(layout):
             color = track.kind
             if track.kind == "loop":
                 color = "inner" if track.name == "Inner main" else "main"
+            elif track.kind == "crossover":
+                color = "point"
             result[(move.piece, f"{route.start}-{route.end}")] = COLORS[color]
     return result
 
@@ -169,6 +171,8 @@ def _drawing(layout, cfg, number, target):
         kinds.append(("Inner main", "inner"))
     if layout.mode == "passing":
         kinds.append(("Passing track", "passing"))
+    if any(t.kind == "crossover" for t in layout.tracks):
+        kinds.append(("Crossover", "point"))
     if any(t.kind == "spur" for t in layout.tracks):
         kinds.append(("Freight / yard", "spur"))
     for index, (label, key) in enumerate(kinds):
@@ -184,6 +188,8 @@ def _drawing(layout, cfg, number, target):
     draw.text((width-105, footer+136), f"{bar/10:g} cm", anchor="ra", fill=INK, font=_font(24))
 
     details = [f"Longest lap {_units(layout.lap)}"]
+    if cfg.strategy == "longest_tracks":
+        details.append(f"Total track {_units(round(layout.total_track_length_mm, 2))}")
     if layout.mode == "double":
         details.append(f"Parallel straight {_units(layout.parallel_mm)}")
     if "station_main" in layout.lengths:

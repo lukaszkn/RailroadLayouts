@@ -8,7 +8,7 @@
   "seed": 42,
   "vehicle_group": "B",
   "edge_margin_mm": 35,
-  "ignore_similar_percentage": 0.05,
+  "ignore_similar_percentage": 0.10,
   "require_connected_tracks": true,
   "min_turnouts": 3,
   "max_turnouts": 10,

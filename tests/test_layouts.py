@@ -12,7 +12,7 @@ from tt_layouts.config import Config, Limit, read_config
 from tt_layouts.export import write_run
 from tt_layouts.generate import Stock, _filter_similar_lengths, generate, running_loop, score, specialty_modes, spur
 from tt_layouts.geometry import Part, Pose, Route, Segment, Step, joint_fits, load_catalog
-from tt_layouts.model import Layout, equivalent, validate
+from tt_layouts.model import Layout, equivalent, turnout_count, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -111,6 +111,30 @@ class LayoutTests(unittest.TestCase):
                     drive_counts = (quantity * self.catalog[code].data.get("point_drive", {}).get("quantity", 0)
                                     for code, quantity in plan.inventory.items())
                     self.assertEqual(sum(drive_counts), turnouts)
+
+    def test_longest_tracks_nests_curved_roads_inside_connected_double_loops(self):
+        parts = {code: Limit(enabled=False) for code, part in self.catalog.items()
+                 if part.kind == "turnout" and code not in ("83328", "83341")}
+        parts.update({"83212": Limit(enabled=False), "83100": Limit(max_count=5)})
+        cfg = self.config_for(mode="double", count=1, strategy="longest_tracks",
+                              min_turnouts=3, max_turnouts=7, parts=parts)
+        plans, _ = generate(self.catalog, cfg)
+        layout, = plans
+        self.assertEqual(layout.inventory["83212"], 0)
+        self.assertEqual(turnout_count(self.catalog, layout.inventory), 7)
+        self.assertEqual(layout.inventory["83100"], 5)
+        self.assertEqual(sum(track.kind == "loop" for track in layout.tracks), 2)
+        self.assertGreater(layout.lengths["Crossover"], 0)
+        self.assertGreater(layout.total_track_length_mm, 16_000)
+        curved_roads = 0
+        for track in layout.tracks:
+            if track.kind != "spur":
+                continue
+            sweep = sum(abs(segment.sweep) for move in track.moves
+                        if layout.pieces[move.piece].part.kind == "curve"
+                        for segment in layout.route(move).segments)
+            curved_roads += sweep >= 180
+        self.assertGreaterEqual(curved_roads, 2)
 
     def test_require_connected_tracks_config(self):
         with TemporaryDirectory() as root:

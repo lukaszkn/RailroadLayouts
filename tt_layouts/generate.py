@@ -3,18 +3,19 @@
 from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
-from itertools import cycle, groupby, islice, product
+from itertools import combinations, cycle, groupby, islice, product
 import logging
-from math import ceil
+from math import ceil, cos, floor, radians, sin, sqrt
 from random import Random
 
 from .config import MODES
-from .geometry import Pose, Step, angle_delta, min_radius, spacing
+from .geometry import Pose, Step, angle_delta, joint_fits, min_radius, spacing
 from .inventory import rebuild, repartition
-from .model import Layout, Move, equivalent, validate
+from .model import Layout, Move, equivalent, turnout_count, validate
 
 BUFFER = Step("83100", "a-stop")
-_YARD_BASE_FAMILIES = {"diagonal", "passing_oval", "passing_rectangle", "crossover", "parallel"}
+_YARD_BASE_FAMILIES = {"diagonal", "passing_oval", "passing_rectangle", "crossover",
+                       "paired_crossover", "parallel"}
 logger = logging.getLogger(__name__)
 
 
@@ -297,6 +298,76 @@ def passing_modes(stock):
                         yield freight
 
 
+def _crossing_links(stock, first, second, offset):
+    """Find stock links between oppositely facing turnouts of the same hand."""
+    start = _end(stock, Pose(), (Step(first.code, "a-c"),))
+    rise = sin(radians(start.heading))
+    if abs(rise) < 1e-6:
+        return
+    inner_first = rise < 0
+    end = _end(stock, Pose(0, -offset if inner_first else offset, 180),
+               (Step(second.code, "a-c"),))
+    if abs(angle_delta(start.heading, end.heading + 180)) > 0.1:
+        return
+    target = (end.y - start.y) / rise
+    # Allow for both components of the accepted joint residual.
+    allowance = 0.5 + 0.15 * abs(cos(radians(start.heading)) / rise)
+    for tenths in range(max(0, ceil(10 * (target - allowance))), floor(10 * (target + allowance)) + 1):
+        link = stock.straight(tenths / 10)
+        if link is not None:
+            yield inner_first, _end(stock, start, link), end, link
+
+
+def _paired_crossovers(stock, bend, inner_bend, sides, offset, high):
+    cfg = stock.cfg
+    if cfg.max_turnouts < 2:
+        return
+    points = [part for part in stock.catalog.values() if part.kind == "turnout"
+              and cfg.available(part.code) and part.radius >= min_radius(cfg.vehicle_group)]
+    spans = tuple(stock.runs(cfg.train_length, high, 55))
+    for first, second in product(points, repeat=2):
+        links = tuple(_crossing_links(stock, first, second, offset))
+        if not links:
+            continue
+        first_length = first.routes["a-b"].length
+        second_length = second.routes["a-b"].length
+        for length, back in spans:
+            for lead_length in (0, 83, 166):
+                lead = stock.straight(lead_length)
+                suffix = stock.straight(length - lead_length - first_length)
+                if lead is None or suffix is None:
+                    continue
+                first_run = lead + (Step(first.code),) + suffix
+                for inner_first, start, end, link in links:
+                    # Find a stock position for connector a on the reversed turnout.
+                    near = Pose(start.x + lead_length, start.y, start.heading)
+                    target = near.x - end.x
+                    for tenths in range(ceil(10 * (target - 0.53)), floor(10 * (target + 0.53)) + 1):
+                        position = tenths / 10
+                        if not joint_fits(near, Pose(position + end.x, end.y, end.heading)):
+                            continue
+                        prefix = stock.straight(position - second_length)
+                        tail = stock.straight(length - position)
+                        if prefix is None or tail is None:
+                            continue
+                        second_run = prefix + (Step(second.code, "b-a"),) + tail
+                        outer_run, inner_run = (second_run, first_run) if inner_first else (first_run, second_run)
+                        layout = Layout(stock.catalog, "double", "paired_crossover", "Connected double track",
+                                        "Run on both loops with the points lined straight. Stop conflicting trains before using the crossover.")
+                        outer_top, outer_rest = running_loop(layout, Pose(), outer_run, back, bend, sides)
+                        inner_top, inner_rest = running_loop(layout, Pose(0, offset), inner_run, back, inner_bend, sides)
+                        layout.add("Outer main", outer_top + outer_rest, "loop")
+                        layout.add("Inner main", inner_top + inner_rest, "loop")
+                        near_top, far_top = (inner_top, outer_top) if inner_first else (outer_top, inner_top)
+                        branch = from_port(layout, near_top[len(lead)], link)
+                        far = layout.branch(far_top[len(prefix)])
+                        layout.add("Crossover", branch + (far.reversed(),), "crossover")
+                        layout.parallel_mm = length
+                        yield layout
+                        # Further submillimetre shifts of the same joint have the same geometry.
+                        break
+
+
 def double_modes(stock):
     cfg = stock.cfg
     span, depth = sorted((cfg.width, cfg.height), reverse=True)
@@ -314,6 +385,8 @@ def double_modes(stock):
             sides = stock.straight(side_mm)
             if sides is None or 2*outer + side_mm + 2*margin > depth:
                 continue
+            if cfg.strategy == "longest_tracks":
+                yield from _paired_crossovers(stock, bend, inner_bend, sides, offset, high)
             if offset == 43 and cfg.available("83212"):
                 # Find a stock prefix such that its length plus 251 mm
                 # has an exact, all-straight counterpart on the return side.
@@ -510,6 +583,20 @@ class _YardBase:
     run: tuple[Move, ...]
     span: float
     depth: float
+    radius: float
+
+
+@dataclass(frozen=True)
+class _YardApproach:
+    steps: tuple[Step, ...]
+    offset: Pose
+    radius: float
+
+
+@dataclass(frozen=True)
+class _YardRoad:
+    steps: tuple[Step, ...]
+    next_point: int | None = None
 
 
 def _keep_yard_base(layout, bases):
@@ -530,11 +617,13 @@ def _keep_yard_base(layout, bases):
         return
     front_y = layout.port(loop.moves[0]).y
     depth = layout.port(run[0]).y - front_y
+    radius = next(layout.pieces[move.piece].part.radius for move in loop.moves
+                  if layout.pieces[move.piece].part.kind == "curve")
     passing_inside = any(track.kind == "passing" and layout.port(track.moves[0], True).y > front_y
                          for track in layout.tracks)
     band = (layout.family, round(span / 83), round(depth / 83), passing_inside)
     shelf = bases.setdefault(band, [])
-    shelf.append((layout.total_track_length_mm, _YardBase(layout, parent, run, span, depth)))
+    shelf.append((layout.total_track_length_mm, _YardBase(layout, parent, run, span, depth, radius)))
     shelf.sort(key=lambda row: row[0], reverse=True)
     del shelf[4:]
 
@@ -550,53 +639,172 @@ def _yard_entries(stock):
         approaches = []
         for steps in _branches(stock, point):
             offset = _end(stock, start, steps)
-            min_curve = min(stock.catalog[step.code].radius for step in steps)
-            clearance = spacing(stock.cfg.vehicle_group, min(point.radius, min_curve))
-            if offset.y >= clearance + 5:
-                approaches.append((offset, steps, clearance))
+            radius = min(point.radius, *(stock.catalog[step.code].radius for step in steps))
+            if offset.y >= spacing(stock.cfg.vehicle_group, radius):
+                approaches.append(_YardApproach(steps, offset, radius))
         if approaches:
-            offset, steps, clearance = min(approaches, key=lambda option: option[0].x)
-            yield Step(point.code), steps, offset, clearance
+            yield Step(point.code), tuple(sorted(approaches, key=lambda option: option.offset.x))
+
+
+def _build_yard(base, point, suffix, roads, *, folded=False):
+    switch_index = base.layout.tracks[base.parent].moves.index(base.run[0])
+    plan = rebuild(base.layout, {base.run[0]: (base.run, (point,) + suffix)})
+    plan.family += "_folded" if folded else "_interior"
+    title = "folded yard" if folded else "interior siding" if len(roads) == 1 else "interior yard"
+    plan.title = f"{plan.title} with {title}"
+    plan.instructions += " Keep the running route clear when switching the interior roads."
+    parent = base.parent
+    switch = plan.tracks[parent].moves[switch_index]
+    for number, road in enumerate(roads, 1):
+        moves = from_port(plan, switch, road.steps + (BUFFER,))
+        parent = plan.add(f"Interior road {number}", moves, "spur", parent)
+        if road.next_point is not None:
+            switch = moves[road.next_point + 1]
+    return plan
+
+
+def _straight_yard_roads(base, stock, point, entry, limit):
+    buffer_length = mm((BUFFER,), stock.catalog)
+    point_length = mm((point,), stock.catalog)
+    dx, dy = entry.offset.xy
+    clearance = spacing(stock.cfg.vehicle_group, entry.radius)
+    road_limit = min(limit, int(max(0, base.depth - clearance) / dy),
+                     int(max(0, base.span - buffer_length) / dx))
+    for road_count, shorter_by in product(range(1, road_limit + 1), (0, 83)):
+        roads = []
+        for road_index in range(road_count):
+            has_branch = road_index < road_count - 1
+            room = base.span - shorter_by - (road_index + 1) * dx - buffer_length
+            if has_branch:
+                room -= point_length
+            tail = next(stock.runs(0, room), None)
+            if tail is None:
+                break
+            if has_branch:
+                roads.append(_YardRoad(entry.steps + (point,) + tail[1], len(entry.steps)))
+            else:
+                roads.append(_YardRoad(entry.steps + tail[1]))
+        else:
+            yield roads
+
+
+def _nested_approaches(stock, radii, entry, approaches):
+    selected = [entry]
+    for outer, inner in zip(radii, radii[1:]):
+        gap = outer - inner
+        # Keep the stock arc centers aligned closely enough to preserve
+        # clearance on both the approach and return sides of each bend.
+        candidates = (option for option in approaches if abs(option.offset.y - gap) + 0.5 <= gap - spacing(
+            stock.cfg.vehicle_group, min(inner, selected[-1].radius, option.radius)))
+        match = min(candidates, key=lambda option: abs(option.offset.y - gap), default=None)
+        if match is None:
+            return ()
+        selected.append(match)
+    return selected
+
+
+def _folded_stems(base, stock, point, radii, approaches, clearance, padding):
+    turn_at = base.span + base.radius - radii[0] - clearance - padding
+    point_length = mm((point,), stock.catalog)
+    x = y = 0
+    stems = []
+    for index, (radius, entry) in enumerate(zip(radii, approaches)):
+        x += entry.offset.x
+        y += entry.offset.y
+        prefix = entry.steps
+        next_point = None
+        bend_start = x
+        if index < len(radii) - 1:
+            next_point = len(prefix)
+            prefix += (point,)
+            bend_start += point_length
+        lead = next(stock.runs(0, turn_at - bend_start), None)
+        return_y = y + 2 * radius
+        if lead is None or return_y > base.depth - clearance:
+            return ()
+        steps = prefix + lead[1] + stock.curve(radius, 180)
+        stems.append((_YardRoad(steps, next_point), bend_start + lead[0], return_y))
+    return stems
+
+
+def _folded_return_roads(base, stock, point, stems, entry, road_limit, clearance):
+    # Intersect each return lane with the inset rounded rectangle on its far
+    # side. The normal validator checks the completed path and pointwork.
+    buffer_length = mm((BUFFER,), stock.catalog)
+    point_length = mm((point,), stock.catalog)
+    inset_radius = base.radius - clearance
+
+    def tail_room(x, y):
+        corner = max(0, base.radius - y, y - (base.depth - base.radius))
+        if corner > inset_radius:
+            return -1
+        return x + sqrt(inset_radius**2 - corner**2) - buffer_length
+
+    outer_roads = []
+    for road, x, y in stems[:-1]:
+        tail = next(stock.runs(0, tail_room(x, y)), None)
+        if tail is None:
+            return
+        outer_roads.append(_YardRoad(road.steps + tail[1], road.next_point))
+    deepest_road, start_x, start_y = stems[-1]
+    for extra_roads in range(road_limit - len(stems) + 1):
+        roads = outer_roads.copy()
+        x, y = start_x, start_y
+        prefix = deepest_road.steps
+        for index in range(extra_roads + 1):
+            has_branch = index < extra_roads
+            room = tail_room(x, y) - (point_length if has_branch else 0)
+            tail = next(stock.runs(0, room), None)
+            if tail is None:
+                break
+            if has_branch:
+                roads.append(_YardRoad(prefix + (point,) + tail[1], len(prefix)))
+                x -= entry.offset.x
+                y -= entry.offset.y
+                prefix = entry.steps
+            else:
+                roads.append(_YardRoad(prefix + tail[1]))
+        else:
+            yield roads
 
 
 def _interior_yards(base, stock, entries):
-    buffer_length = mm((BUFFER,), stock.catalog)
-    switch_index = base.layout.tracks[base.parent].moves.index(base.run[0])
-    for point, approach, offset, clearance in entries:
-        point_length = mm((point,), stock.catalog)
-        suffix = stock.straight(base.span - point_length)
+    cfg = stock.cfg
+    inventory = base.layout.inventory
+    buffer_limit = cfg.parts.get(BUFFER.code)
+    road_limit = cfg.max_turnouts - turnout_count(stock.catalog, inventory)
+    if buffer_limit is not None and buffer_limit.max_count is not None:
+        road_limit = min(road_limit, buffer_limit.max_count - inventory[BUFFER.code])
+    if road_limit < 1:
+        return
+
+    fold_radii = [radius for radius in sorted(stock.curves, reverse=True)
+                  if 2 * radius < base.depth and stock.curve(radius, 180)]
+    for point, approaches in entries:
+        suffix = stock.straight(base.span - mm((point,), stock.catalog))
         if suffix is None:
             continue
-        road_limit = min(stock.cfg.max_turnouts, int(max(0, base.depth - clearance) / offset.y),
-                         int(max(0, base.span - buffer_length) / offset.x))
-        for road_count, shorter_by in product(range(1, road_limit + 1), (0, 83)):
-            tails = []
-            for road_index in range(road_count):
-                room = base.span - shorter_by - (road_index + 1) * offset.x - buffer_length
-                if road_index < road_count - 1:
-                    room -= point_length
-                tail = next(stock.runs(0, room), None)
-                if tail is None:
-                    break
-                tails.append(tail[1])
-            if len(tails) != road_count:
-                continue
-
-            plan = rebuild(base.layout, {base.run[0]: (base.run, (point,) + suffix)})
-            plan.family += "_interior"
-            plan.title = f"{plan.title} with interior {'siding' if road_count == 1 else 'yard'}"
-            plan.instructions += " Keep the running route clear when switching the interior roads."
-            parent = base.parent
-            switch = plan.tracks[parent].moves[switch_index]
-            for road_number, tail in enumerate(tails, 1):
-                name = f"Interior road {road_number}"
-                if road_number == road_count:
-                    spur(plan, switch, approach + tail, name, parent)
-                else:
-                    road = from_port(plan, switch, approach + (point,) + tail + (BUFFER,))
-                    parent = plan.add(name, road, "spur", parent)
-                    switch = road[len(approach) + 1]
-            yield plan
+        limit = road_limit
+        point_limit = cfg.parts.get(point.code)
+        if point_limit is not None and point_limit.max_count is not None:
+            limit = min(limit, point_limit.max_count - inventory[point.code])
+        entry = next((option for option in approaches
+                      if option.offset.y >= spacing(cfg.vehicle_group, option.radius) + 5), None)
+        if entry is None or limit < 1:
+            continue
+        for roads in _straight_yard_roads(base, stock, point, entry, limit):
+            yield _build_yard(base, point, suffix, roads)
+        for count in range(1, min(len(fold_radii), limit) + 1):
+            for radii in combinations(fold_radii, count):
+                selected = _nested_approaches(stock, radii, entry, approaches)
+                if not selected:
+                    continue
+                clearance = spacing(cfg.vehicle_group, min(base.radius, *radii, *(a.radius for a in selected)))
+                for padding in (10, 70):
+                    stems = _folded_stems(base, stock, point, radii, selected, clearance, padding)
+                    if stems:
+                        for roads in _folded_return_roads(base, stock, point, stems, entry, limit, clearance + 8):
+                            yield _build_yard(base, point, suffix, roads, folded=True)
 
 
 def score(layout, strategy):

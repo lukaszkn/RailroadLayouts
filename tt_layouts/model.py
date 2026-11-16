@@ -312,6 +312,9 @@ def _clearance(layout, cfg):
             if result is None:
                 return f"track clearance between {track.name} and {other.name}"
             fouled |= result
+        if track.kind == "crossover":
+            layout.lengths[track.name] = layout.length_for_track(track)
+            continue
         usable = _usable(ds, fouled)
         layout.lengths[track.name] = usable
         if track.kind == "passing":
@@ -336,6 +339,11 @@ def _clearance(layout, cfg):
     return None
 
 
+def turnout_count(catalog, inventory):
+    return sum(quantity * drive["quantity"] for code, quantity in inventory.items()
+               if (drive := catalog[code].data.get("point_drive")))
+
+
 def validate(layout, cfg):
     if not layout.pieces:
         return "missing track"
@@ -343,8 +351,7 @@ def validate(layout, cfg):
     for code, limit in cfg.parts.items():
         if not limit.allows(counts[code]):
             return f"inventory limit for {code}"
-    turnouts = sum(quantity * drive["quantity"] for code, quantity in counts.items()
-                   if (drive := layout.catalog[code].data.get("point_drive")))
+    turnouts = turnout_count(layout.catalog, counts)
     if turnouts < cfg.min_turnouts:
         return f"minimum turnout count of {cfg.min_turnouts}"
     if turnouts > cfg.max_turnouts:
