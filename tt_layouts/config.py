@@ -35,6 +35,7 @@ class Config:
     require_connected_tracks: bool = True
     min_turnouts: int = 1
     max_turnouts: int = 10
+    ignore_similar_percentage: float = 0.0
 
     @property
     def width(self):
@@ -90,6 +91,9 @@ def read_config(path, catalog, overrides=None):
         raise ValueError("count must be a positive integer and seed must be an integer")
     if type(result.require_connected_tracks) is not bool:
         raise ValueError("require_connected_tracks must be a boolean")
+    tolerance = result.ignore_similar_percentage
+    if type(tolerance) not in (int, float) or not 0 <= tolerance <= 1:
+        raise ValueError("ignore_similar_percentage must be a number between 0 and 1")
     for key in ("min_turnouts", "max_turnouts"):
         count = getattr(result, key)
         if type(count) is not int or count < 0:

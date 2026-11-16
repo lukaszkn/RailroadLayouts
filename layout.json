@@ -8,11 +8,13 @@
   "seed": 42,
   "vehicle_group": "B",
   "edge_margin_mm": 35,
+  "ignore_similar_percentage": 0.05,
   "require_connected_tracks": true,
   "min_turnouts": 3,
   "max_turnouts": 10,
   "parts": {
-    "83100": {"enabled": true, "max_count": 5},
+    "83100": {"enabled": true, "min_count": 0, "max_count": 5},
+    "83212": {"enabled": false},
     "83331": {"enabled": true},
     "83332": {"enabled": true}
   }

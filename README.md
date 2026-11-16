@@ -13,6 +13,7 @@ uv sync --locked --python 3.12
 uv run --locked python -m tt_layouts --output output/my-layouts
 uv run --locked python -m tt_layouts --mode passing --train-length-cm 30 --count 4 --output output/station
 uv run --locked python -m tt_layouts --mode double --strategy longest --output output/double-main
+uv run --locked python -m tt_layouts --strategy longest --output output/longest
 uv run --locked python -m unittest discover -s tests -v
 ```
 
@@ -26,6 +27,7 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 |---|---:|---|
 | `width_cm`, `height_cm` | 160, 120 | Baseboard dimensions. A plan can rotate 90° to fit. |
 | `count` | 10 | Number of distinct alternatives requested |
+| `ignore_similar_percentage` | 0 | Track length tolerance as a fraction from `0` to `1`. The included `layout.json` uses `0.05` (5%). `0` disables the filter. |
 | `mode` | `mixed` | `single` for a main line with freight switching, `passing` for two trains to meet, or `double` for simultaneous running on two closed routes |
 | `require_connected_tracks` | `true` | Requires a traversable connection between all tracks in each plan. Set to `false` to allow independent loops. |
 | `min_turnouts` | 1 | Minimum number of turnouts in each plan. Set to `0` to disable the minimum. |
@@ -37,6 +39,8 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 | `seed` | 42 | Repeatable ordering of otherwise tied layouts |
 
 Set `"min_turnouts": 5` and `"max_turnouts": 8` in `layout.json` to require five to eight turnouts per plan, inclusive. The generator counts one turnout per drive listed in the catalog. A double crossover counts as four, a three-way turnout or double slip counts as two, and a fixed crossing counts as zero. If too few plans meet the turnout limits, the generator reports a shortfall.
+
+With `"ignore_similar_percentage": 0.05`, the generator skips a plan when it has the same named tracks as an earlier selected plan of the same mode and every corresponding length is within 5% of that plan's track length. A double-track plan with a goods road and one with only the two laps can both be selected. If too few plans meet the requested diversity, the run reports a shortfall.
 
 The `parts` object applies to each alternative independently. This example requires at least one EW2 right turnout, disables EW2 left, and allows up to five buffer stops.
 

@@ -2,7 +2,7 @@
 
 from collections import Counter
 from functools import lru_cache
-from itertools import product
+from itertools import cycle, islice, product
 import logging
 from math import ceil
 from random import Random
@@ -530,6 +530,97 @@ def _family_preference(layout):
             "passing_oval": 1}.get(layout.family, 0)
 
 
+def _filter_similar_lengths(layouts, cfg, rejected):
+    selected = []
+    for layout in layouts:
+        if any(layout.lengths.keys() == previous.lengths.keys()
+               and all(abs(layout.lengths[name] - length) <= cfg.ignore_similar_percentage * length
+                       for name, length in previous.lengths.items())
+               for previous in selected):
+            rejected["similar track lengths"] += 1
+            continue
+        selected.append(layout)
+        if len(selected) == cfg.count:
+            break
+    return selected
+
+
+def _check_shelf(shelf, stock, sectional, unique, rejected, limit):
+    cfg = stock.cfg
+    accepted = 0
+    for _, tie, layout in shelf:
+        if sectional:
+            layout = repartition(layout, stock, layout.inventory)
+        layout.lengths.clear()
+        failure = validate(layout, cfg)
+        if failure:
+            rejected[failure] += 1
+            continue
+        tracks = layout.centered_tracks()
+        # Quantized length acts only as an index. Search neighbouring
+        # bins before doing the geometric comparison.
+        key = int(layout.lap)
+        nearby = [row for length in range(key-1, key+2) for row in unique.get(length, ())]
+        rank = score(layout, cfg.strategy)
+        duplicate = next((row for row in nearby if equivalent(tracks, row[3])), None)
+        if duplicate and duplicate[0] >= rank:
+            continue
+        if duplicate:
+            unique[int(duplicate[2].lap)].remove(duplicate)
+        else:
+            accepted += 1
+        unique.setdefault(key, []).append((rank, tie, layout, tracks))
+        if accepted == limit:
+            return True
+    return False
+
+
+def _rank_layouts(unique, strategy):
+    valid = sorted((row[:3] for rows in unique.values() for row in rows),
+                   key=lambda row: row[:2], reverse=True)
+    if strategy != "balanced":
+        return [layout for _, _, layout in valid]
+
+    # Take one of each operation family before repeating one.
+    families = {}
+    for _, _, layout in sorted(valid, key=lambda row: _family_preference(row[2]), reverse=True):
+        families.setdefault(layout.family, []).append(layout)
+    layouts = []
+    while any(families.values()):
+        layouts.extend(items.pop(0) for items in families.values() if items)
+    return layouts
+
+
+def _layout_batches(shelves, stock, sectional, rejected, mode):
+    cfg = stock.cfg
+    unique = {}
+    pending = [iter(sorted(shelf, key=lambda row: row[:2], reverse=True)) for shelf in shelves.values()]
+    shelves.clear()
+    limit = max(cfg.count, 4) if cfg.strategy == "balanced" else None
+    while True:
+        pending = [shelf for shelf in pending
+                   if _check_shelf(shelf, stock, sectional, unique, rejected, limit)]
+        valid = _rank_layouts(unique, cfg.strategy)
+        logger.info("Found %d distinct valid %s layouts", len(valid), mode)
+        if not cfg.ignore_similar_percentage:
+            yield valid, Counter()
+            return
+        filtered = Counter()
+        selected = _filter_similar_lengths(valid, cfg, filtered)
+        yield selected, filtered
+        if len(selected) == cfg.count or not pending:
+            return
+        # Resume paused shelves when similarity filtering leaves a shortfall.
+        limit *= 2
+
+
+def _fill_from_batches(batches, count, current=None):
+    for current in batches:
+        if len(current[0]) >= count:
+            break
+    return current
+
+
 def generate(catalog, cfg):
     """Return ranked validated layouts and rejection counts."""
     stock = Stock(catalog, cfg)
@@ -552,9 +643,15 @@ def generate(catalog, cfg):
         "double": (double_modes,),
     }
     modes = MODES[:3] if cfg.mode == "mixed" else (cfg.mode,)
-    candidates = []
+    # The default ten gives two switching designs and four each for two-train
+    # operation. For other counts, cycle through the same proportions.
+    schedule = (0, 1, 2, 1, 2)
+    targets = Counter(islice(cycle(schedule), cfg.count)) if (
+        cfg.mode == "mixed" and cfg.strategy == "balanced") else {}
+    searches = []
+    choices = []
     sectional = {code: limit for code, limit in cfg.parts.items() if catalog[code].kind in ("straight", "curve")}
-    for mode in modes:
+    for index, mode in enumerate(modes):
         logger.info("Searching for %s track layouts", mode)
         shelves = {}
         for source in mode_sources[mode]:
@@ -572,56 +669,25 @@ def generate(catalog, cfg):
                 shelves.setdefault(candidate.family, []).append((estimate, rng.random(), candidate))
         logger.info("Checking %s layouts from a pool of %d candidates",
                     mode, sum(len(shelf) for shelf in shelves.values()))
-        valid = []
-        unique = {}
-        for shelf in shelves.values():
-            accepted = 0
-            for _, tie, layout in sorted(shelf, key=lambda row: row[:2], reverse=True):
-                if sectional:
-                    layout = repartition(layout, stock, layout.inventory)
-                layout.lengths.clear()
-                failure = validate(layout, cfg)
-                if failure:
-                    rejected[failure] += 1
-                    continue
-                tracks = layout.centered_tracks()
-                # Quantized length acts only as an index. Search neighbouring
-                # bins before doing the geometric comparison.
-                key = int(layout.lap)
-                nearby = [row for length in range(key-1, key+2) for row in unique.get(length, ())]
-                rank = score(layout, cfg.strategy)
-                duplicate = next((row for row in nearby if equivalent(tracks, row[3])), None)
-                if duplicate and duplicate[0] >= rank:
-                    continue
-                if duplicate:
-                    unique[int(duplicate[2].lap)].remove(duplicate)
-                else:
-                    accepted += 1
-                unique.setdefault(key, []).append((rank, tie, layout, tracks))
-                if cfg.strategy == "balanced" and accepted >= max(cfg.count, 4):
-                    break
-        valid.extend(sorted((row[:3] for rows in unique.values() for row in rows),
-                            key=lambda row: row[:2], reverse=True))
-        if cfg.strategy == "balanced":
-            # Take one of each operation family before repeating one.
-            families = {}
-            for _, _, layout in sorted(valid, key=lambda row: _family_preference(row[2]), reverse=True):
-                families.setdefault(layout.family, []).append(layout)
-            valid = []
-            while any(families.values()):
-                valid.extend(items.pop(0) for items in families.values() if items)
-        else:
-            valid = [layout for _, _, layout in valid]
-        logger.info("Found %d distinct valid %s layouts", len(valid), mode)
-        candidates.append(valid)
+        batches = _layout_batches(shelves, stock, sectional, rejected, mode)
+        choices.append(_fill_from_batches(batches, targets.get(index, cfg.count)))
+        searches.append(batches)
+    # If one mode could not meet its share, check the paused searches for replacements.
+    if cfg.ignore_similar_percentage and targets:
+        remaining = cfg.count - sum(len(plans) for plans, _ in choices)
+        for index, (plans, _) in enumerate(choices):
+            if remaining <= 0:
+                break
+            choices[index] = _fill_from_batches(searches[index], len(plans) + remaining, choices[index])
+            remaining += len(plans) - len(choices[index][0])
+    for _, filtered in choices:
+        rejected.update(filtered)
+    candidates = [plans for plans, _ in choices]
     if cfg.mode != "mixed":
         return candidates[0][:cfg.count], rejected
     if cfg.strategy != "balanced":
         all_layouts = [layout for mode in candidates for layout in mode]
         return sorted(all_layouts, key=lambda v: score(v, cfg.strategy), reverse=True)[:cfg.count], rejected
-    # The default ten gives two switching designs and four each for two-train
-    # operation. For other counts, cycle through the same proportions.
-    schedule = (0, 1, 2, 1, 2)
     result = []
     while len(result) < cfg.count and any(candidates):
         for index in schedule:

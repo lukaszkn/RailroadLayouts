@@ -10,7 +10,7 @@ from PIL import Image
 
 from tt_layouts.config import Config, Limit, read_config
 from tt_layouts.export import write_run
-from tt_layouts.generate import Stock, generate, specialty_modes
+from tt_layouts.generate import Stock, _filter_similar_lengths, generate, specialty_modes
 from tt_layouts.geometry import Pose, Step, joint_fits, load_catalog
 from tt_layouts.model import Layout, equivalent, validate
 
@@ -59,6 +59,39 @@ class LayoutTests(unittest.TestCase):
                     path.write_text(json.dumps({"require_connected_tracks": value}), encoding="utf-8")
                     with self.assertRaisesRegex(ValueError, "require_connected_tracks must be a boolean"):
                         read_config(path, self.catalog)
+
+    def test_ignore_similar_percentage_config(self):
+        with TemporaryDirectory() as root:
+            path = Path(root) / "layout.json"
+            path.write_text("{}", encoding="utf-8")
+            self.assertEqual(read_config(path, self.catalog).ignore_similar_percentage, 0)
+            for value in (0, 0.05, 1):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps({"ignore_similar_percentage": value}), encoding="utf-8")
+                    self.assertEqual(read_config(path, self.catalog).ignore_similar_percentage, value)
+            for value in (None, True, "0.05", -0.01, 1.01, float("nan"), float("inf")):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps({"ignore_similar_percentage": value}), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "ignore_similar_percentage must be a number between 0 and 1"):
+                        read_config(path, self.catalog)
+
+    def test_similarity_uses_every_named_track_of_selected_layouts(self):
+        def plan(lengths):
+            layout = Layout(self.catalog, "double", "", "", "")
+            layout.lengths.update(lengths)
+            return layout
+
+        first = plan({"lap": 100, "inner_lap": 80, "Goods road": 20})
+        without_goods_road = plan({"lap": 100, "inner_lap": 80})
+        within_tolerance = plan({"lap": 105, "inner_lap": 76, "Goods road": 21})
+        longer_goods_road = plan({"lap": 105, "inner_lap": 76, "Goods road": 21.1})
+        cfg = self.config_for(count=3, ignore_similar_percentage=0.05)
+        rejected = Counter()
+        selected = _filter_similar_lengths(
+            [first, without_goods_road, within_tolerance, longer_goods_road], cfg, rejected)
+
+        self.assertEqual(selected, [first, without_goods_road, longer_goods_road])
+        self.assertEqual(rejected["similar track lengths"], 1)
 
     def test_min_turnouts_config(self):
         with TemporaryDirectory() as root:
