@@ -3,7 +3,7 @@
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from itertools import combinations, groupby, pairwise
-from math import fsum
+from math import cos, fsum, radians, sin
 
 import numpy as np
 import shapely
@@ -11,7 +11,7 @@ from shapely.affinity import rotate, translate
 from shapely.geometry import LineString, Point
 from shapely.strtree import STRtree
 
-from .geometry import Piece, Pose, align, joint_fits, min_radius, residual, spacing
+from .geometry import Piece, Pose, align, angle_delta, joint_fits, min_radius, residual, spacing
 
 
 @dataclass(frozen=True)
@@ -44,6 +44,8 @@ class Layout:
         self.joints = []
         self.lengths = {}
         self.parallel_mm = 0
+        self.station_tracks = ()
+        self.interior_tracks = ()
 
     def route(self, move):
         part = self.pieces[move.piece].part
@@ -365,6 +367,43 @@ def _clearance(layout, cfg):
     return None
 
 
+def _station_usable(layout, group):
+    # The station runs along the first straight of the running loops.
+    main = layout.tracks[layout.station_tracks[0]]
+    heading = layout.port(main.moves[0]).heading + 180
+    dx, dy = cos(radians(heading)), sin(radians(heading))
+
+    def straight(move):
+        return (abs(angle_delta(layout.port(move, True).heading, heading)) < 0.1
+                and all(not segment.radius for segment in layout.route(move).segments))
+
+    lanes = []
+    for index in layout.station_tracks:
+        track = layout.tracks[index]
+        runs = (tuple(moves) for aligned, moves in groupby(track.moves, key=straight) if aligned)
+        run = max(runs, key=lambda moves: sum(layout.route(m).length for m in moves), default=())
+        if not run:
+            return 0.0
+        a, b = layout.port(run[0]), layout.port(run[-1], True)
+        lanes.append((dx*a.x + dy*a.y, dx*b.x + dy*b.y, -dy*a.x + dx*a.y))
+
+    start = max(a for a, _, _ in lanes)
+    end = min(b for _, b, _ in lanes)
+    if end <= start:
+        return 0.0
+    ds = np.linspace(0, end - start, max(2, int((end - start) / 2) + 1))
+    fouled = np.zeros(len(ds), dtype=bool)
+    lines = [layout.line_for_track(t) for t in layout.tracks]
+    radii = [min(layout.pieces[m.piece].part.radius for m in t.moves) for t in layout.tracks]
+    for index, (_, _, offset) in zip(layout.station_tracks, lanes):
+        samples = shapely.points(dx*(start + ds) - dy*offset, dy*(start + ds) + dx*offset)
+        for other, line in enumerate(lines):
+            if index != other:
+                limit = spacing(group, min(radii[index], radii[other]))
+                fouled |= shapely.distance(samples, line) < limit - 0.01
+    return _usable(ds, fouled)
+
+
 def turnout_count(catalog, inventory):
     return sum(quantity * drive["quantity"] for code, quantity in inventory.items()
                if (drive := catalog[code].data.get("point_drive")))
@@ -373,6 +412,10 @@ def turnout_count(catalog, inventory):
 def validate(layout, cfg):
     if not layout.pieces:
         return "missing track"
+    station_count = len(layout.station_tracks)
+    if cfg.require_station and (station_count < max(2, cfg.min_station_tracks)
+                                or cfg.max_station_tracks is not None and station_count > cfg.max_station_tracks):
+        return "station track count"
     counts = layout.inventory
     for code, limit in cfg.parts.items():
         if not limit.allows(counts[code]):
@@ -416,6 +459,20 @@ def validate(layout, cfg):
     failure = _clearance(layout, cfg)
     if failure:
         return failure
+    if station_count:
+        usable = _station_usable(layout, cfg.vehicle_group)
+        if usable + 1e-6 < cfg.station_track_length:
+            return "configured train or station length exceeds the shared clear station straight"
+        layout.lengths["station_usable"] = usable
+    if cfg.require_interior:
+        yard = [layout.tracks[i] for i in layout.interior_tracks if layout.lengths[layout.tracks[i].name] > 0]
+        if len(yard) < cfg.min_interior_sidings:
+            return "minimum usable interior siding count"
+        if cfg.interior_style == "curved_yard" and not any(
+            sum(abs(seg.sweep) for move in track.moves if layout.pieces[move.piece].part.kind == "curve"
+                for seg in layout.route(move).segments) >= 90 for track in yard
+        ):
+            return "no usable curved interior yard"
     if layout.mode == "single" and max(
         (layout.lengths[t.name] for t in layout.tracks if t.kind == "spur"), default=0
     ) < min(100, cfg.train_length):

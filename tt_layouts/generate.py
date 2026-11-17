@@ -416,15 +416,9 @@ def _paired_crossovers(stock, bend, inner_bend, sides, offset, high):
                 yield layout
 
 
-def _build_return_crossovers(stock, bend, inner_bend, offset, length, upper, returning,
-                             sides, back, return_side):
-    layout = Layout(stock.catalog, "double", "return_crossovers", "Double track crossovers",
-                    "Use the two crossovers to change loops and return while moving forward. "
-                    "Stop conflicting trains before crossing over.")
-    straights = [upper.runs, (sides, sides), (back, back), (sides, sides)]
-    straights[return_side] = returning.runs
+def _add_double_loops(layout, curves, offset, straights):
     runs = []
-    for i, (name, curve) in enumerate(zip(("Outer main", "Inner main"), (bend, inner_bend))):
+    for i, (name, curve) in enumerate(zip(("Outer main", "Inner main"), curves)):
         start = Pose(0, i * offset)
         loop, loop_runs = [], []
         for straight in straights:
@@ -435,6 +429,17 @@ def _build_return_crossovers(stock, bend, inner_bend, offset, length, upper, ret
             start = layout.port(turn[-1], True)
         layout.add(name, loop, "loop")
         runs.append(loop_runs)
+    return runs
+
+
+def _build_return_crossovers(stock, bend, inner_bend, offset, length, upper, returning,
+                             sides, back, return_side):
+    layout = Layout(stock.catalog, "double", "return_crossovers", "Double track crossovers",
+                    "Use the two crossovers to change loops and return while moving forward. "
+                    "Stop conflicting trains before crossing over.")
+    straights = [upper.runs, (sides, sides), (back, back), (sides, sides)]
+    straights[return_side] = returning.runs
+    runs = _add_double_loops(layout, (bend, inner_bend), offset, straights)
     upper.add(layout, (runs[0][0], runs[1][0]), "Crossover 1")
     returning.add(layout, (runs[0][return_side], runs[1][return_side]), "Crossover 2")
     layout.parallel_mm = length
@@ -497,7 +502,7 @@ def double_modes(stock):
             sides = stock.straight(side_mm)
             if sides is None or 2*outer + side_mm + 2*margin > depth:
                 continue
-            if cfg.strategy == "longest_tracks" and not cfg.require_forward_loop_return:
+            if (cfg.strategy == "longest_tracks" or cfg.require_interior) and not cfg.require_forward_loop_return:
                 yield from _paired_crossovers(stock, bend, inner_bend, sides, offset, high)
             if offset == 43 and cfg.available("83212"):
                 # Find a stock prefix such that its length plus 251 mm
@@ -574,6 +579,163 @@ def double_modes(stock):
                 spur(freight, top[len(lead)], tail, "Goods road", inner_main)
                 freight.parallel_mm = length
                 yield freight
+
+
+@dataclass(frozen=True)
+class _StationApproach:
+    point: str
+    steps: tuple[Step, ...]
+    end: Pose
+
+
+@dataclass(frozen=True)
+class _StationRoad:
+    main: tuple[Step, ...]
+    entry: tuple[Step, ...]
+    exit: tuple[Step, ...]
+    center: tuple[float, float]
+    offset: float
+
+
+def _station_approaches(stock):
+    cfg = stock.cfg
+    for point in stock.catalog.values():
+        if (point.kind != "turnout" or not cfg.available(point.code)
+                or point.radius < min_radius(cfg.vehicle_group)):
+            continue
+        start = _end(stock, Pose(), (Step(point.code, "a-c"),))
+        for steps in _branches(stock, point):
+            radius = min(point.radius, *(stock.catalog[step.code].radius for step in steps))
+            if radius == 267:
+                continue
+            end = _end(stock, start, steps)
+            if abs(end.y) >= spacing(cfg.vehicle_group, radius):
+                yield _StationApproach(point.code, steps, end)
+
+
+def _station_roads(stock, pairs, length, minimum):
+    # Keep the shortest approaches for each pair of pointwork SKUs that
+    # leaves room for a stock center run with a valid closing joint.
+    found = set()
+    for first, last in pairs:
+        key = (first.point, last.point)
+        if key in found:
+            continue
+        a, b = first.end, last.end
+        target = length - a.x - b.x
+        if target < minimum:
+            break
+        points = (Step(first.point), Step(last.point, "b-a"))
+        point_length = sum(stock.catalog[step.code].routes["a-b"].length for step in points)
+        main = stock.straight(length - point_length)
+        if main is None:
+            continue
+        for tenths in range(floor(10*(target + 1e-6)), ceil(10*max(minimum, target - .500001)) - 1, -1):
+            middle = stock.straight(tenths / 10)
+            end = a.x + tenths / 10
+            if middle is not None and joint_fits(Pose(end, a.y), Pose(length - b.x, -b.y, 180)):
+                yield _StationRoad((points[0],) + main + (points[1],), first.steps + middle,
+                                   last.steps, (a.x, end), max(abs(a.y), abs(b.y)))
+                found.add(key)
+                break
+
+
+def _station_sides(stock, approaches, room, budget):
+    cfg = stock.cfg
+    if not (cfg.require_connected_tracks or cfg.require_forward_loop_return):
+        for length in stock.side_lengths(room, (0, 83, 166, 249)):
+            if length <= room and (run := stock.straight(length)) is not None:
+                yield run, (None, None)
+    needed = 4 if cfg.require_forward_loop_return else 2
+    if budget < needed or not approaches:
+        return
+    # Fit ordinary crossovers on the short sides to keep both long
+    # straights available for the station and the yard lead.
+    shortest = min(max(a.facing_end, a.trailing_positions[0][0]) for a in approaches)
+    ceiling = room
+    for tenths in range(floor(10*room + 1e-6), ceil(10*shortest - 1e-6) - 1, -1):
+        length = tenths / 10
+        if length > ceiling or (run := stock.straight(length)) is None:
+            continue
+        fitted = [crossing for a in approaches if (crossing := a.fit(stock, length)) is not None]
+        if cfg.require_forward_loop_return:
+            pairs = product((c for c in fitted if not c.source), (c for c in fitted if c.source))
+        else:
+            pairs = ((crossing, None) for crossing in fitted)
+        for pair in pairs:
+            yield run, pair
+            ceiling = length - 55
+
+
+def _build_station(stock, curves, offset, length, back, sides, crossings, roads):
+    count = 2 + sum(road is not None for road in roads)
+    instructions = "Use the station tracks to meet or overtake. Keep trains clear of the turnouts."
+    if any(crossings):
+        instructions += " Stop conflicting trains before crossing over."
+    layout = Layout(stock.catalog, "double", f"station_{count}", f"{count}-track station",
+                    instructions)
+    front = tuple(road.main if road else back for road in roads)
+    right, left = (c.runs if c else (sides, sides) for c in crossings)
+    runs = _add_double_loops(layout, curves, offset, (front, right, (back, back), left))
+    for side, crossing in zip((1, 3), crossings):
+        if crossing:
+            crossing.add(layout, (runs[0][side], runs[1][side]), f"Crossover {(side+1)//2}")
+    station = [0, 1]
+    for index, road in enumerate(roads):
+        if road:
+            row = runs[index][0]
+            moves = from_port(layout, row[0], road.entry) + backwards(from_port(layout, row[-1], road.exit))
+            station.append(layout.add(f"Station track {len(station)+1}", moves, "station", index))
+    layout.station_tracks = tuple(station)
+    layout.parallel_mm = length
+    return layout
+
+
+def station_modes(stock):
+    cfg = stock.cfg
+    span, depth = sorted((cfg.width, cfg.height), reverse=True)
+    margin = cfg.edge_margin_mm
+    minimum = cfg.station_track_length + 20
+    yard_drives = max(cfg.min_interior_sidings, int(cfg.interior_style == "curved_yard"))
+    low_count = max(2, cfg.min_station_tracks)
+    high_count = min(4, cfg.max_station_tracks or 4)
+    legs = tuple(_station_approaches(stock))
+    pairs = sorted(((a, b) for a, b in product(legs, repeat=2)
+                    if a.end.y*b.end.y < 0 and abs(a.end.y+b.end.y) <= .150001),
+                   key=lambda pair: pair[0].end.x + pair[1].end.x)
+    radii = sorted(r for r in stock.curves if r >= 310 and stock.curve(r, 90))
+    for inner, outer in combinations(radii, 2):
+        offset = outer - inner
+        side_high = depth - 2*outer - 2*margin
+        high = span - 2*outer - 2*margin
+        if offset < spacing(cfg.vehicle_group, inner) or side_high < 0 or high < minimum:
+            continue
+        curves = (stock.curve(outer, 90), stock.curve(inner, 90))
+        approaches = tuple(a for entries in _crossover_approaches(stock, offset) for a in entries)
+
+        @lru_cache(maxsize=None)
+        def side_options(room, budget):
+            return tuple(_station_sides(stock, approaches, room, budget))
+
+        for length, back in stock.runs(minimum, high, 35):
+            outside, inside = (), ()
+            if high_count >= 3:
+                outside = tuple(_station_roads(stock, (p for p in pairs if p[0].end.y < 0), length, minimum))
+                inside = tuple(_station_roads(stock, (p for p in pairs if p[0].end.y > 0), length, minimum))
+            for outer_road, inner_road in product((None, *outside), (None, *inside)):
+                roads = (outer_road, inner_road)
+                count = 2 + sum(road is not None for road in roads)
+                budget = cfg.max_turnouts - 2*(count-2) - yard_drives
+                if not low_count <= count <= high_count or budget < 0:
+                    continue
+                if outer_road and inner_road:
+                    start = max(outer_road.center[0], inner_road.center[0])
+                    end = min(outer_road.center[1], inner_road.center[1])
+                    if end - start < minimum:
+                        continue
+                room = side_high - (outer_road.offset if outer_road else 0)
+                for sides, crossings in side_options(room, budget):
+                    yield _build_station(stock, curves, offset, length, back, sides, crossings, roads)
 
 
 def specialty_modes(stock):
@@ -712,7 +874,7 @@ class _YardRoad:
 
 
 def _keep_yard_base(layout, bases):
-    if layout.family not in _YARD_BASE_FAMILIES:
+    if not layout.station_tracks and layout.family not in _YARD_BASE_FAMILIES:
         return
     parent = max(i for i, track in enumerate(layout.tracks) if track.kind == "loop")
     loop = layout.tracks[parent]
@@ -767,11 +929,13 @@ def _build_yard(base, point, suffix, roads, *, folded=False):
     plan.instructions += " Keep the running route clear when switching the interior roads."
     parent = base.parent
     switch = plan.tracks[parent].moves[switch_index]
+    first_road = len(plan.tracks)
     for number, road in enumerate(roads, 1):
         moves = from_port(plan, switch, road.steps + (BUFFER,))
         parent = plan.add(f"Interior road {number}", moves, "spur", parent)
         if road.next_point is not None:
             switch = moves[road.next_point + 1]
+    plan.interior_tracks = tuple(range(first_road, len(plan.tracks)))
     return plan
 
 
@@ -887,7 +1051,8 @@ def _interior_yards(base, stock, entries):
     road_limit = cfg.max_turnouts - turnout_count(stock.catalog, inventory)
     if buffer_limit is not None and buffer_limit.max_count is not None:
         road_limit = min(road_limit, buffer_limit.max_count - inventory[BUFFER.code])
-    if road_limit < 1:
+    minimum = max(1, cfg.min_interior_sidings)
+    if road_limit < minimum:
         return
 
     fold_radii = [radius for radius in sorted(stock.curves, reverse=True)
@@ -902,10 +1067,12 @@ def _interior_yards(base, stock, entries):
             limit = min(limit, point_limit.max_count - inventory[point.code])
         entry = next((option for option in approaches
                       if option.offset.y >= spacing(cfg.vehicle_group, option.radius) + 5), None)
-        if entry is None or limit < 1:
+        if entry is None or limit < minimum:
             continue
-        for roads in _straight_yard_roads(base, stock, point, entry, limit):
-            yield _build_yard(base, point, suffix, roads)
+        if cfg.interior_style == "any":
+            for roads in _straight_yard_roads(base, stock, point, entry, limit):
+                if len(roads) >= minimum:
+                    yield _build_yard(base, point, suffix, roads)
         for count in range(1, min(len(fold_radii), limit) + 1):
             for radii in combinations(fold_radii, count):
                 selected = _nested_approaches(stock, radii, entry, approaches)
@@ -916,7 +1083,8 @@ def _interior_yards(base, stock, entries):
                     stems = _folded_stems(base, stock, point, radii, selected, clearance, padding)
                     if stems:
                         for roads in _folded_return_roads(base, stock, point, stems, entry, limit, clearance + 8):
-                            yield _build_yard(base, point, suffix, roads, folded=True)
+                            if len(roads) >= minimum:
+                                yield _build_yard(base, point, suffix, roads, folded=True)
 
 
 def score(layout, strategy):
@@ -1103,6 +1271,8 @@ def generate(catalog, cfg):
         return [], Counter({"board and edge margin cannot fit the minimum main-line diameter": 1})
     if cfg.mode == "single" and not cfg.available("83100"):
         return [], Counter({"a freight spur needs a buffer stop (83100)": 1})
+    if cfg.require_interior and not cfg.available(BUFFER.code):
+        return [], Counter({"interior sidings need buffer stops (83100)": 1})
     if cfg.mode in ("passing", "double") and cfg.train_length + 2 * (
         min(running_radii) + cfg.edge_margin_mm
     ) > max(cfg.width, cfg.height):
@@ -1112,16 +1282,20 @@ def generate(catalog, cfg):
         "passing": (passing_modes,),
         "double": (double_modes,),
     }
-    modes = MODES[:3] if cfg.mode == "mixed" else (cfg.mode,)
+    if cfg.require_station:
+        modes = ("double",)
+        mode_sources["double"] = (station_modes,)
+    else:
+        modes = MODES[:3] if cfg.mode == "mixed" else (cfg.mode,)
     # The default ten gives two switching designs and four each for two-train
     # operation. For other counts, cycle through the same proportions.
     schedule = (0, 1, 2, 1, 2)
     targets = Counter(islice(cycle(schedule), cfg.count)) if (
-        cfg.mode == "mixed" and cfg.strategy == "balanced") else {}
+        cfg.mode == "mixed" and cfg.strategy == "balanced" and not cfg.require_station) else {}
     searches = []
     choices = []
     sectional = {code: limit for code, limit in cfg.parts.items() if catalog[code].kind in ("straight", "curve")}
-    yard_entries = tuple(_yard_entries(stock)) if cfg.strategy == "longest_tracks" else ()
+    yard_entries = tuple(_yard_entries(stock)) if cfg.strategy == "longest_tracks" or cfg.require_interior else ()
     for index, mode in enumerate(modes):
         logger.info("Searching for %s track layouts", mode)
         shelves = {}
@@ -1130,11 +1304,17 @@ def generate(catalog, cfg):
             for candidate in source(stock):
                 if yard_entries and not (cfg.require_forward_loop_return and candidate.family == "parallel"):
                     _keep_yard_base(candidate, yard_bases)
-                _shelve(candidate, cfg, sectional, shelves, rng, rejected)
+                if not cfg.require_interior:
+                    _shelve(candidate, cfg, sectional, shelves, rng, rejected)
         for bases in yard_bases.values():
             for _, base in bases:
                 for candidate in _interior_yards(base, stock, yard_entries):
                     _shelve(candidate, cfg, sectional, shelves, rng, rejected)
+        if not shelves:
+            if cfg.require_station and not yard_bases:
+                rejected["no stock station formation fits the board and requested limits"] += 1
+            elif cfg.require_interior:
+                rejected["no interior yard fits the stock and siding requirements"] += 1
         logger.info("Checking %s layouts from a pool of %d candidates",
                     mode, sum(len(shelf) for shelf in shelves.values()))
         batches = _layout_batches(shelves, stock, sectional, rejected, mode)
@@ -1151,7 +1331,7 @@ def generate(catalog, cfg):
     for _, filtered in choices:
         rejected.update(filtered)
     candidates = [plans for plans, _ in choices]
-    if cfg.mode != "mixed":
+    if cfg.mode != "mixed" or cfg.require_station:
         return candidates[0][:cfg.count], rejected
     if cfg.strategy != "balanced":
         if cfg.strategy == "longest_tracks":

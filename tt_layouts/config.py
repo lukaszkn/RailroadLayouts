@@ -38,6 +38,11 @@ class Config:
     ignore_similar_percentage: float = 0.0
     optimize_track_parts: bool = True
     require_forward_loop_return: bool = False
+    min_station_tracks: int = 0
+    max_station_tracks: int | None = None
+    min_station_track_length_cm: float | None = None
+    interior_style: str = "any"
+    min_interior_sidings: int = 0
 
     @property
     def width(self):
@@ -50,6 +55,19 @@ class Config:
     @property
     def train_length(self):
         return self.train_length_cm * 10
+
+    @property
+    def require_station(self):
+        return (self.min_station_tracks > 0 or self.max_station_tracks is not None
+                or self.min_station_track_length_cm is not None)
+
+    @property
+    def station_track_length(self):
+        return max(self.train_length, (self.min_station_track_length_cm or 0) * 10)
+
+    @property
+    def require_interior(self):
+        return self.interior_style != "any" or self.min_interior_sidings > 0
 
     def available(self, code):
         limit = self.parts.get(code, Limit())
@@ -97,12 +115,24 @@ def read_config(path, catalog, overrides=None):
     tolerance = result.ignore_similar_percentage
     if type(tolerance) not in (int, float) or not 0 <= tolerance <= 1:
         raise ValueError("ignore_similar_percentage must be a number between 0 and 1")
-    for key in ("min_turnouts", "max_turnouts"):
+    for key in ("min_turnouts", "max_turnouts", "min_station_tracks", "min_interior_sidings"):
         count = getattr(result, key)
         if type(count) is not int or count < 0:
             raise ValueError(f"{key} must be a non-negative integer")
     if result.max_turnouts < result.min_turnouts:
         raise ValueError("max_turnouts must be at least min_turnouts")
+    station_max = result.max_station_tracks
+    if station_max is not None and (type(station_max) is not int or station_max < 2
+                                    or station_max < result.min_station_tracks):
+        raise ValueError("max_station_tracks must be null or an integer at least 2 and at least min_station_tracks")
+    station_length = result.min_station_track_length_cm
+    if station_length is not None and (type(station_length) not in (int, float)
+                                       or not math.isfinite(station_length) or station_length <= 0):
+        raise ValueError("min_station_track_length_cm must be null or a finite positive number")
     if result.mode not in MODES or result.strategy not in STRATEGIES or result.vehicle_group not in ("A", "B", "C"):
         raise ValueError("Check mode, strategy and vehicle_group against the README")
+    if result.require_station and result.mode not in ("double", "mixed"):
+        raise ValueError("Station track settings require double or mixed mode")
+    if result.interior_style not in ("any", "curved_yard"):
+        raise ValueError("interior_style must be any or curved_yard")
     return result

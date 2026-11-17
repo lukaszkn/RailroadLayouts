@@ -236,6 +236,8 @@ def rebuild(layout, replacements, *, tracks=None, exact_runs=()):
     """Replace runs in a new layout, preserving track indices and shared pieces."""
     updated = Layout(layout.catalog, layout.mode, layout.family, layout.title, layout.instructions)
     updated.parallel_mm = layout.parallel_mm
+    updated.station_tracks = layout.station_tracks
+    updated.interior_tracks = layout.interior_tracks
     placed = {}
     for track in layout.tracks if tracks is None else tracks:
         moves = []

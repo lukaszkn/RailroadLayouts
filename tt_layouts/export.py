@@ -44,6 +44,8 @@ def _route_colors(layout):
             color = track.kind
             if track.kind == "loop":
                 color = "inner" if track.name == "Inner main" else "main"
+            elif track.kind == "station":
+                color = "passing"
             elif track.kind == "crossover":
                 color = "point"
             result[(move.piece, f"{route.start}-{route.end}")] = COLORS[color]
@@ -171,6 +173,8 @@ def _drawing(layout, cfg, number, target):
         kinds.append(("Inner main", "inner"))
     if layout.mode == "passing":
         kinds.append(("Passing track", "passing"))
+    if any(t.kind == "station" for t in layout.tracks):
+        kinds.append(("Station track", "passing"))
     if any(t.kind == "crossover" for t in layout.tracks):
         kinds.append(("Crossover", "point"))
     if any(t.kind == "spur" for t in layout.tracks):
@@ -194,6 +198,8 @@ def _drawing(layout, cfg, number, target):
         details.append(f"Parallel straight {_units(layout.parallel_mm)}")
     if "station_main" in layout.lengths:
         details.append(f"Main at station {_units(layout.lengths['station_main'])}")
+    if layout.station_tracks:
+        details.append(f"Shared station straight {_units(layout.lengths['station_usable'])}")
     details.extend(f"{t.name} {_units(layout.lengths[t.name])}" for t in layout.tracks if t.kind != "loop")
     detail_font = _font(27)
     detail_rows = [""]
@@ -280,6 +286,12 @@ def _write_outputs(layouts, rejected, cfg, directory):
                    track_lengths_mm={name:round(length, 2) for name, length in layout.lengths.items()},
                    parallel_straight_mm=round(layout.parallel_mm, 2), point_drives=dict(drives),
                    maximum_joint_residuals=largest)
+        if layout.station_tracks:
+            row["station_track_count"] = len(layout.station_tracks)
+            row["station_usable_length_mm"] = round(layout.lengths["station_usable"], 2)
+        if layout.interior_tracks:
+            row["interior_siding_count"] = sum(
+                layout.lengths[layout.tracks[i].name] > 0 for i in layout.interior_tracks)
         rows.append(row)
         _write_json(folder/"placement.json", dict(row,
                     board_mm=[cfg.width, cfg.height],

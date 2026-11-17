@@ -16,6 +16,8 @@ uv run --locked python -m tt_layouts --mode double --strategy longest --output o
 uv run --locked python -m tt_layouts --strategy longest --output output/longest
 uv run --locked python -m tt_layouts --strategy longest_tracks --output output/longest-tracks
 uv run --locked python -m unittest discover -s tests -v
+
+uv run --locked python -m tt_layouts --output output/my-layouts --count 50 && uv run --locked python -m tt_layouts --strategy longest --output output/longest --count 50 && uv run --locked python -m tt_layouts --strategy longest_tracks --output output/longest-tracks --count 50
 ```
 
 `uv sync` creates `.venv`. You can also run `.venv/bin/python -m tt_layouts` directly. After setup, generation runs locally with no network access. Use a fresh output directory for each run. Exit status 0 means the requested count was met, 1 means a partial or empty result with a shortfall report, and 2 means an input or export error.
@@ -62,6 +64,26 @@ The `parts` object applies to each alternative independently. This example requi
 ```
 
 Absent rules allow any quantity. `max_count: null` means unlimited, and `max_count: 0` forbids use. The generator can substitute enabled sectional pieces that preserve a straight or curve's geometry to meet inventory limits. The included sample enables 83331 without requiring it in every plan. Each SKU retains its actual turnout handedness.
+
+### Multi-track station and interior yard
+
+The [station preset](layout.station.json) asks for three or four parallel through tracks and at least two interior sidings on the 160 × 120 cm board.
+
+```sh
+uv run --locked python -m tt_layouts --config layout.station.json --output output/stations
+```
+
+| Setting | Default | Meaning |
+|---|---:|---|
+| `min_station_tracks` | 0 | Minimum number of through tracks in one station, including the two mains. |
+| `max_station_tracks` | `null` | Optional upper bound. Set both bounds to `4` for a four-track station. |
+| `min_station_track_length_cm` | `null` | Minimum shared clear straight. It defaults to `train_length_cm`. Each lane must fit at least that train length, clear of the turnouts, with 10 mm stopping room at each end. |
+| `interior_style` | `any` | Use `curved_yard` to require a yard with a curved approach inside the running loops. |
+| `min_interior_sidings` | 0 | Minimum number of usable buffer-ended sidings inside the running loops. |
+
+Setting a station bound or a station length enables the station search in `double` or `mixed` mode. The template adds up to two tracks to the mains along a long board edge, with turnouts at both ends of each added track. With forward return enabled, ordinary crossovers go on the short sides. This leaves the opposite long edge available for the interior yard. The station preset allows ten turnout drives to fit the two crossovers, four station turnouts, and two yard turnouts in a four-track plan.
+
+The interior requirements also work on their own. They enable the interior-yard search with any ranking strategy. Station plans report `station_track_count` and `station_usable_length_mm` in both `run.json` and `placement.json`.
 
 ### Track part optimization
 

@@ -302,6 +302,71 @@ class LayoutTests(unittest.TestCase):
         self.assertAlmostEqual((headings[0] - headings[1]) % 180, 90)
         self.assertIsNone(validate(plan, cfg))
 
+    def test_station_config_limits(self):
+        with TemporaryDirectory() as root:
+            path = Path(root) / "layout.json"
+            path.write_text("{}", encoding="utf-8")
+            cfg = read_config(path, self.catalog)
+            self.assertFalse(cfg.require_station)
+            self.assertFalse(cfg.require_interior)
+            self.assertEqual(cfg.station_track_length, cfg.train_length)
+            invalid = (
+                ({"min_station_tracks": True}, "min_station_tracks"),
+                ({"min_station_tracks": 4, "max_station_tracks": 3}, "max_station_tracks"),
+                ({"min_station_track_length_cm": 0}, "min_station_track_length_cm"),
+                ({"mode": "passing", "min_station_tracks": 3}, "Station track settings"),
+                ({"min_interior_sidings": -1}, "min_interior_sidings"),
+                ({"interior_style": "random"}, "interior_style"),
+            )
+            for settings, field in invalid:
+                with self.subTest(settings=settings):
+                    path.write_text(json.dumps(settings), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, field):
+                        read_config(path, self.catalog)
+
+    def test_four_track_station_with_curved_yard_and_rotated_board(self):
+        cfg = read_config(ROOT / "layout.station.json", self.catalog,
+                          {"width_cm": 120, "height_cm": 160, "min_station_tracks": 4, "count": 1})
+        plans, rejected = generate(self.catalog, cfg)
+        plan, = plans
+        station = [plan.tracks[i] for i in plan.station_tracks]
+        self.assertEqual([track.kind for track in station], ["loop", "loop", "station", "station"])
+        for track in station[2:]:
+            parent = {move.piece for move in plan.tracks[track.parent].moves}
+            self.assertTrue({track.moves[0].piece, track.moves[-1].piece} <= parent)
+        self.assertGreaterEqual(plan.lengths["station_usable"], 250)
+        self.assertEqual(len(plan.interior_tracks), 2)
+        self.assertEqual(turnout_count(self.catalog, plan.inventory), 10)
+        self.assertEqual(plan.inventory["83212"], 0)
+        self.assertIsNone(validate(plan, cfg))
+
+        with TemporaryDirectory() as root:
+            path = Path(root) / "station"
+            write_run(plans, rejected, cfg, path)
+            report = json.loads((path / "run.json").read_text())
+            placement = json.loads((path / "01-double" / "placement.json").read_text())
+            for row in (report["layouts"][0], placement):
+                self.assertEqual(row["station_track_count"], 4)
+                self.assertEqual(row["station_usable_length_mm"], round(plan.lengths["station_usable"], 2))
+                self.assertEqual(row["interior_siding_count"], 2)
+        tighter = replace(cfg, min_station_track_length_cm=plan.lengths["station_usable"] / 10 + 1)
+        self.assertEqual(validate(plan, tighter),
+                         "configured train or station length exceeds the shared clear station straight")
+
+    def test_three_track_station_respects_yard_budget_with_balanced_ranking(self):
+        cfg = read_config(ROOT / "layout.station.json", self.catalog,
+                          {"mode": "mixed", "strategy": "balanced", "max_station_tracks": 3,
+                           "max_turnouts": 8, "count": 1})
+        plans, _ = generate(self.catalog, cfg)
+        plan, = plans
+        self.assertEqual(plan.mode, "double")
+        self.assertEqual(len(plan.station_tracks), 3)
+        self.assertEqual(len(plan.interior_tracks), 2)
+        self.assertEqual(turnout_count(self.catalog, plan.inventory), 8)
+        plans, rejected = generate(self.catalog, replace(cfg, max_turnouts=7))
+        self.assertEqual(plans, [])
+        self.assertTrue(rejected)
+
     def test_mode_mix_and_inventory(self):
         self.assertTrue(self.config.require_connected_tracks)
         self.assertEqual(Counter(p.mode for p in self.examples),

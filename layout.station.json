@@ -1,0 +1,29 @@
+{
+  "width_cm": 160,
+  "height_cm": 120,
+  "count": 10,
+  "mode": "double",
+  "strategy": "longest_tracks",
+  "train_length_cm": 25,
+  "seed": 42,
+  "vehicle_group": "B",
+  "edge_margin_mm": 55,
+  "ignore_similar_percentage": 0.15,
+  "require_connected_tracks": true,
+  "require_forward_loop_return": true,
+  "optimize_track_parts": true,
+  "min_turnouts": 3,
+  "max_turnouts": 10,
+  "min_station_tracks": 3,
+  "max_station_tracks": 4,
+  "min_station_track_length_cm": 25,
+  "interior_style": "curved_yard",
+  "min_interior_sidings": 2,
+  "parts": {
+    "83100": {"enabled": true, "min_count": 0, "max_count": 5},
+    "83212": {"enabled": false},
+    "83300": {"enabled": false},
+    "83331": {"enabled": true},
+    "83332": {"enabled": true}
+  }
+}
