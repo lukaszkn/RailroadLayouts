@@ -15,7 +15,7 @@ from .model import Layout, Move, equivalent, turnout_count, validate
 
 BUFFER = Step("83100", "a-stop")
 _YARD_BASE_FAMILIES = {"diagonal", "passing_oval", "passing_rectangle", "crossover",
-                       "paired_crossover", "parallel"}
+                       "paired_crossover", "return_crossovers", "parallel"}
 logger = logging.getLogger(__name__)
 
 
@@ -320,54 +320,159 @@ def _crossing_links(stock, first, second, offset):
             yield inner_first, _end(stock, start, link), end, link
 
 
-def _paired_crossovers(stock, bend, inner_bend, sides, offset, high):
+@dataclass(frozen=True)
+class _Crossover:
+    runs: tuple[tuple[Step, ...], tuple[Step, ...]]
+    source: int
+    facing_index: int
+    trailing_index: int
+    link: tuple[Step, ...]
+
+    def add(self, layout, runs, name):
+        facing = runs[self.source][self.facing_index]
+        trailing = runs[1 - self.source][self.trailing_index]
+        branch = from_port(layout, facing, self.link)
+        layout.add(name, branch + (layout.branch(trailing).reversed(),), "crossover")
+
+
+@dataclass(frozen=True)
+class _CrossoverApproach:
+    facing: tuple[Step, ...]
+    facing_end: float
+    trailing_positions: tuple[tuple[float, tuple[Step, ...]], ...]
+    source: int
+    link: tuple[Step, ...]
+
+    def fit(self, stock, length):
+        suffix = stock.straight(length - self.facing_end)
+        if suffix is None:
+            return None
+        for position, trailing in self.trailing_positions:
+            tail = stock.straight(length - position)
+            if tail is not None:
+                runs = (self.facing + suffix, trailing + tail)
+                if self.source:
+                    runs = (runs[1], runs[0])
+                return _Crossover(runs, self.source, len(self.facing) - 1, len(trailing) - 1, self.link)
+        return None
+
+
+def _crossover_approaches(stock, offset):
     cfg = stock.cfg
-    if cfg.max_turnouts < 2:
-        return
     points = [part for part in stock.catalog.values() if part.kind == "turnout"
               and cfg.available(part.code) and part.radius >= min_radius(cfg.vehicle_group)]
-    spans = tuple(stock.runs(cfg.train_length, high, 55))
     for first, second in product(points, repeat=2):
         links = tuple(_crossing_links(stock, first, second, offset))
         if not links:
             continue
         first_length = first.routes["a-b"].length
         second_length = second.routes["a-b"].length
+        approaches = []
+        for lead_length in (0, 83, 166):
+            lead = stock.straight(lead_length)
+            if lead is None:
+                continue
+            facing = lead + (Step(first.code),)
+            for inner_first, start, end, link in links:
+                # Find stock positions for connector a on the reversed turnout.
+                near = Pose(start.x + lead_length, start.y, start.heading)
+                target = near.x - end.x
+                positions = []
+                for tenths in range(ceil(10 * (target - 0.53)), floor(10 * (target + 0.53)) + 1):
+                    position = tenths / 10
+                    if not joint_fits(near, Pose(position + end.x, end.y, end.heading)):
+                        continue
+                    prefix = stock.straight(position - second_length)
+                    if prefix is not None:
+                        positions.append((position, prefix + (Step(second.code, "b-a"),)))
+                if positions:
+                    approaches.append(_CrossoverApproach(
+                        facing, lead_length + first_length, tuple(positions), int(inner_first), link))
+        if approaches:
+            yield approaches
+
+
+def _paired_crossovers(stock, bend, inner_bend, sides, offset, high):
+    if stock.cfg.max_turnouts < 2:
+        return
+    spans = tuple(stock.runs(stock.cfg.train_length, high, 55))
+    for approaches in _crossover_approaches(stock, offset):
         for length, back in spans:
-            for lead_length in (0, 83, 166):
-                lead = stock.straight(lead_length)
-                suffix = stock.straight(length - lead_length - first_length)
-                if lead is None or suffix is None:
+            for approach in approaches:
+                crossing = approach.fit(stock, length)
+                if crossing is None:
                     continue
-                first_run = lead + (Step(first.code),) + suffix
-                for inner_first, start, end, link in links:
-                    # Find a stock position for connector a on the reversed turnout.
-                    near = Pose(start.x + lead_length, start.y, start.heading)
-                    target = near.x - end.x
-                    for tenths in range(ceil(10 * (target - 0.53)), floor(10 * (target + 0.53)) + 1):
-                        position = tenths / 10
-                        if not joint_fits(near, Pose(position + end.x, end.y, end.heading)):
-                            continue
-                        prefix = stock.straight(position - second_length)
-                        tail = stock.straight(length - position)
-                        if prefix is None or tail is None:
-                            continue
-                        second_run = prefix + (Step(second.code, "b-a"),) + tail
-                        outer_run, inner_run = (second_run, first_run) if inner_first else (first_run, second_run)
-                        layout = Layout(stock.catalog, "double", "paired_crossover", "Connected double track",
-                                        "Run on both loops with the points lined straight. Stop conflicting trains before using the crossover.")
-                        outer_top, outer_rest = running_loop(layout, Pose(), outer_run, back, bend, sides)
-                        inner_top, inner_rest = running_loop(layout, Pose(0, offset), inner_run, back, inner_bend, sides)
-                        layout.add("Outer main", outer_top + outer_rest, "loop")
-                        layout.add("Inner main", inner_top + inner_rest, "loop")
-                        near_top, far_top = (inner_top, outer_top) if inner_first else (outer_top, inner_top)
-                        branch = from_port(layout, near_top[len(lead)], link)
-                        far = layout.branch(far_top[len(prefix)])
-                        layout.add("Crossover", branch + (far.reversed(),), "crossover")
-                        layout.parallel_mm = length
-                        yield layout
-                        # Further submillimetre shifts of the same joint have the same geometry.
-                        break
+                layout = Layout(stock.catalog, "double", "paired_crossover", "Connected double track",
+                                "Run on both loops with the points lined straight. Stop conflicting trains before using the crossover.")
+                tops = []
+                for name, start, curve, run in zip(("Outer main", "Inner main"),
+                                                   (Pose(), Pose(0, offset)),
+                                                   (bend, inner_bend), crossing.runs):
+                    top, rest = running_loop(layout, start, run, back, curve, sides)
+                    layout.add(name, top + rest, "loop")
+                    tops.append(top)
+                crossing.add(layout, tops, "Crossover")
+                layout.parallel_mm = length
+                yield layout
+
+
+def _build_return_crossovers(stock, bend, inner_bend, offset, length, upper, returning,
+                             sides, back, return_side):
+    layout = Layout(stock.catalog, "double", "return_crossovers", "Double track crossovers",
+                    "Use the two crossovers to change loops and return while moving forward. "
+                    "Stop conflicting trains before crossing over.")
+    straights = [upper.runs, (sides, sides), (back, back), (sides, sides)]
+    straights[return_side] = returning.runs
+    runs = []
+    for i, (name, curve) in enumerate(zip(("Outer main", "Inner main"), (bend, inner_bend))):
+        start = Pose(0, i * offset)
+        loop, loop_runs = [], []
+        for straight in straights:
+            run = layout.lay(start, straight[i])
+            turn = layout.lay(layout.port(run[-1], True) if run else start, curve)
+            loop_runs.append(run)
+            loop.extend(run + turn)
+            start = layout.port(turn[-1], True)
+        layout.add(name, loop, "loop")
+        runs.append(loop_runs)
+    upper.add(layout, (runs[0][0], runs[1][0]), "Crossover 1")
+    returning.add(layout, (runs[0][return_side], runs[1][return_side]), "Crossover 2")
+    layout.parallel_mm = length
+    return layout
+
+
+def _return_crossovers(stock, bend, inner_bend, offset, high, side_high, side_lengths):
+    if stock.cfg.max_turnouts < 4:
+        return
+    spans = tuple(stock.runs(stock.cfg.train_length, high, 55))
+    across = {length: ([], []) for length, _ in spans}
+    perpendicular = ([], [])
+    for approaches in _crossover_approaches(stock, offset):
+        for approach in approaches:
+            for length, _ in spans:
+                if (crossing := approach.fit(stock, length)) is not None:
+                    across[length][crossing.source].append(crossing)
+            # A small reduction in the short side can let both lines close
+            # with stock straights. Keep its longest fit for each placement.
+            minimum = max(approach.facing_end, approach.trailing_positions[0][0])
+            for tenths in range(floor(10 * side_high + 1e-6), ceil(10 * minimum - 1e-6) - 1, -1):
+                side = tenths / 10
+                sides = stock.straight(side)
+                if sides is not None and (crossing := approach.fit(stock, side)) is not None:
+                    perpendicular[crossing.source].append((crossing, sides))
+                    break
+
+    side_runs = [run for length in side_lengths if (run := stock.straight(length)) is not None]
+    for length, back in spans:
+        outer_first, inner_first = across[length]
+        # Rotating the layout swaps the two opposite long straights.
+        for upper, returning, sides in product(outer_first, inner_first, side_runs):
+            yield _build_return_crossovers(stock, bend, inner_bend, offset, length,
+                                           upper, returning, sides, back, 2)
+        for upper in (*outer_first, *inner_first):
+            for returning, sides in perpendicular[1 - upper.source]:
+                yield _build_return_crossovers(stock, bend, inner_bend, offset, length,
+                                               upper, returning, sides, back, 1)
 
 
 def double_modes(stock):
@@ -383,11 +488,16 @@ def double_modes(stock):
         if bend is None or inner_bend is None:
             continue
         high = span - 2*outer - 2*margin
-        for side_mm in stock.side_lengths(depth-2*outer-2*margin, (0, 83, 166, 249)):
+        side_high = depth - 2*outer - 2*margin
+        side_lengths = stock.side_lengths(side_high, (0, 83, 166, 249))
+        if cfg.require_forward_loop_return:
+            yield from _return_crossovers(stock, bend, inner_bend, offset, high, side_high,
+                                          (length for length in side_lengths if length <= side_high))
+        for side_mm in side_lengths:
             sides = stock.straight(side_mm)
             if sides is None or 2*outer + side_mm + 2*margin > depth:
                 continue
-            if cfg.strategy == "longest_tracks":
+            if cfg.strategy == "longest_tracks" and not cfg.require_forward_loop_return:
                 yield from _paired_crossovers(stock, bend, inner_bend, sides, offset, high)
             if offset == 43 and cfg.available("83212"):
                 # Find a stock prefix such that its length plus 251 mm
@@ -1018,7 +1128,7 @@ def generate(catalog, cfg):
         yard_bases = {}
         for source in mode_sources[mode]:
             for candidate in source(stock):
-                if yard_entries:
+                if yard_entries and not (cfg.require_forward_loop_return and candidate.family == "parallel"):
                     _keep_yard_base(candidate, yard_bases)
                 _shelve(candidate, cfg, sectional, shelves, rng, rejected)
         for bases in yard_bases.values():

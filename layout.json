@@ -1,21 +1,23 @@
 {
   "width_cm": 160,
   "height_cm": 120,
-  "count": 20,
+  "count": 40,
   "mode": "mixed",
   "strategy": "balanced",
   "train_length_cm": 25,
   "seed": 42,
   "vehicle_group": "B",
   "edge_margin_mm": 35,
-  "ignore_similar_percentage": 0.10,
+  "ignore_similar_percentage": 0.15,
   "require_connected_tracks": true,
+  "require_forward_loop_return": true,
   "optimize_track_parts": true,
   "min_turnouts": 3,
   "max_turnouts": 10,
   "parts": {
     "83100": {"enabled": true, "min_count": 0, "max_count": 5},
     "83212": {"enabled": false},
+    "83300": {"enabled": false},
     "83331": {"enabled": true},
     "83332": {"enabled": true}
   }

@@ -28,9 +28,10 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 |---|---:|---|
 | `width_cm`, `height_cm` | 160, 120 | Baseboard dimensions. A plan can rotate 90° to fit. |
 | `count` | 10 | Number of distinct alternatives requested |
-| `ignore_similar_percentage` | 0 | Track length tolerance as a fraction from `0` to `1`. The included `layout.json` uses `0.10` (10%). `0` disables the filter. |
+| `ignore_similar_percentage` | 0 | Track length tolerance as a fraction from `0` to `1`. The included `layout.json` uses `0.15` (15%). `0` disables the filter. |
 | `mode` | `mixed` | `single` for a main line with freight switching, `passing` for two trains to meet, or `double` for simultaneous running on two closed routes |
 | `require_connected_tracks` | `true` | Requires a traversable connection between all tracks in each plan. Set to `false` to allow independent loops. |
+| `require_forward_loop_return` | `false` | Requires a train on either main to be able to change loops and return while moving forward, clockwise or counterclockwise. The included `layout.json` enables this for double-track plans. |
 | `optimize_track_parts` | `true` | Chooses cheaper combinations of straight and curved pieces that preserve the assembled geometry and meet the SKU limits. Set to `false` to use the original stock selection and inventory repair. |
 | `min_turnouts` | 1 | Minimum number of turnouts in each plan. Set to `0` to disable the minimum. |
 | `max_turnouts` | 10 | Maximum number of turnouts in each plan. Must be at least `min_turnouts`. |
@@ -43,6 +44,8 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 Set `"min_turnouts": 5` and `"max_turnouts": 8` in `layout.json` to require five to eight turnouts per plan, inclusive. The generator counts one turnout per drive listed in the catalog. A double crossover counts as four, a three-way turnout or double slip counts as two, and a fixed crossing counts as zero. If too few plans meet the turnout limits, the generator reports a shortfall.
 
 `longest_tracks` counts both main lines, sidings, yard roads, passing tracks, and all routes through installed pointwork. It counts shared centerline sections once and includes the track up to each buffer stop. The search tries folded sidings with nested curves and branches off the return legs. In double mode it also tries linking the two loops with two ordinary turnouts and, where needed, a stock straight between them.
+
+With `require_forward_loop_return` enabled, the search can use an 83212 double crossover or two ordinary crossovers with opposite orientations. It applies to double-track plans selected in `mixed` mode and takes effect independently of `require_connected_tracks`. The run report records the setting and any shortfall due to available space or stock.
 
 With `"ignore_similar_percentage": 0.10`, the generator skips a plan when it has the same named tracks as an earlier selected plan of the same mode and every corresponding length is within 10% of that plan's track length. A double-track plan with a goods road and one with only the two laps can both be selected. If too few plans meet the requested diversity, the run reports a shortfall.
 

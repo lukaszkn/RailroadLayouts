@@ -150,6 +150,20 @@ class LayoutTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "require_connected_tracks must be a boolean"):
                         read_config(path, self.catalog)
 
+    def test_require_forward_loop_return_config(self):
+        with TemporaryDirectory() as root:
+            path = Path(root) / "layout.json"
+            path.write_text("{}", encoding="utf-8")
+            self.assertIs(read_config(path, self.catalog).require_forward_loop_return, False)
+            for value in (True, False, None, 0, 1, "true"):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps({"require_forward_loop_return": value}), encoding="utf-8")
+                    if type(value) is bool:
+                        self.assertIs(read_config(path, self.catalog).require_forward_loop_return, value)
+                    else:
+                        with self.assertRaisesRegex(ValueError, "require_forward_loop_return must be a boolean"):
+                            read_config(path, self.catalog)
+
     def test_ignore_similar_percentage_config(self):
         with TemporaryDirectory() as root:
             path = Path(root) / "layout.json"
@@ -228,7 +242,65 @@ class LayoutTests(unittest.TestCase):
         for plan in plans:
             self.assertEqual(plan.inventory["83212"], 1)
             self.assertEqual(plan.inventory["83331"], 0)
+            self.assertIsNone(validate(plan, replace(cfg, require_forward_loop_return=True)))
         self.assertGreater(rejected["maximum turnout count of 4"], 0)
+
+    def test_forward_loop_return_requires_crossovers_in_both_orientations(self):
+        stock = Stock(self.catalog, self.config)
+        outer_run = (Step("83341"),) + stock.straight(617)
+        inner_prefix = stock.straight(202.5)
+        inner_run = inner_prefix + (Step("83341", "b-a"),) + stock.straight(414.5)
+        plain = stock.straight(824)
+        for count in (1, 2):
+            with self.subTest(crossovers=count):
+                layout = Layout(self.catalog, "double", "", "", "")
+                layout.parallel_mm = 824
+                crossover_points = []
+                for start, run, radius in ((Pose(), outer_run, 353), (Pose(0, 43), inner_run, 310)):
+                    bend = stock.curve(radius, 90)
+                    top, rest = running_loop(layout, start, run, plain if count == 1 else run, bend)
+                    layout.add(str(radius), top + rest, "loop")
+                    crossover_points.append((top, rest[2 * len(bend):]))
+                outer, inner = crossover_points
+                for i in range(count):
+                    facing = layout.branch(outer[i][0])
+                    trailing = layout.branch(inner[i][len(inner_prefix)]).reversed()
+                    layout.add(f"Crossover {i + 1}", (facing, trailing), "crossover")
+                self.assertIsNone(validate(layout, self.config))
+                self.assertEqual(validate(layout, replace(self.config, require_forward_loop_return=True)),
+                                 "no forward-only return between running loops")
+
+    def test_generate_opposite_crossovers_when_short_side_cannot_fit(self):
+        limits = {code: Limit(enabled=False) for code, part in self.catalog.items()
+                  if part.kind == "turnout" and code not in ("83341", "83342")}
+        limits["83212"] = Limit(enabled=False)
+        cfg = self.config_for(mode="double", height_cm=90, count=1, max_turnouts=4,
+                              require_forward_loop_return=True, parts=limits)
+        plans, _ = generate(self.catalog, cfg)
+        plan, = plans
+        self.assertEqual(plan.inventory["83341"], 2)
+        self.assertEqual(plan.inventory["83342"], 2)
+        diagonals = [track for track in plan.tracks if track.kind == "crossover"]
+        self.assertEqual(len(diagonals), 2)
+        headings = [plan.port(track.moves[0]).heading for track in diagonals]
+        self.assertAlmostEqual((headings[0] - headings[1]) % 360, 180)
+        self.assertIsNone(validate(plan, cfg))
+
+    def test_longest_tracks_finds_forward_return_with_folded_yard(self):
+        limits = {code: Limit(enabled=False) for code, part in self.catalog.items()
+                  if part.kind == "turnout" and code not in ("83328", "83341", "83342")}
+        limits["83212"] = Limit(enabled=False)
+        cfg = self.config_for(mode="double", strategy="longest_tracks", count=1,
+                              min_turnouts=9, max_turnouts=9, require_forward_loop_return=True, parts=limits)
+        plans, _ = generate(self.catalog, cfg)
+        plan, = plans
+        self.assertEqual(plan.inventory["83100"], 5)
+        self.assertGreater(plan.total_track_length_mm, 17_000)
+        diagonals = [track for track in plan.tracks if track.kind == "crossover"]
+        self.assertEqual(len(diagonals), 2)
+        headings = [plan.port(track.moves[0]).heading for track in diagonals]
+        self.assertAlmostEqual((headings[0] - headings[1]) % 180, 90)
+        self.assertIsNone(validate(plan, cfg))
 
     def test_mode_mix_and_inventory(self):
         self.assertTrue(self.config.require_connected_tracks)
@@ -313,6 +385,12 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(validate(plans[0], cfg), reason)
         self.assertEqual(validate(plans[0], replace(cfg, require_connected_tracks=False, min_turnouts=1)),
                          "minimum turnout count of 1")
+        forward = replace(cfg, require_connected_tracks=False, require_forward_loop_return=True,
+                          max_turnouts=3)
+        self.assertEqual(validate(plans[0], forward), "no forward-only return between running loops")
+        plans, rejected = generate(self.catalog, forward)
+        self.assertEqual(plans, [])
+        self.assertGreater(rejected["no forward-only return between running loops"], 0)
 
     def test_fixed_diamond_does_not_connect_its_routes(self):
         layout = Layout(self.catalog, "single", "diamond", "Fixed crossing", "")

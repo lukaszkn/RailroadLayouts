@@ -176,6 +176,16 @@ def _check_joints(layout):
     return None
 
 
+def _reachable(neighbors, source):
+    pending = [source]
+    visited = {source}
+    while pending:
+        reachable = neighbors[pending.pop()] - visited
+        visited.update(reachable)
+        pending.extend(reachable)
+    return visited
+
+
 def _tracks_connected(layout):
     neighbors = defaultdict(set)
     for i, piece in enumerate(layout.pieces):
@@ -192,13 +202,29 @@ def _tracks_connected(layout):
         neighbors[first].add(second)
         neighbors[second].add(first)
 
-    pending = [next(iter(neighbors))] if neighbors else []
-    visited = set(pending)
-    while pending:
-        reachable = neighbors[pending.pop()] - visited
-        visited.update(reachable)
-        pending.extend(reachable)
-    return len(visited) == len(neighbors)
+    return not neighbors or len(_reachable(neighbors, next(iter(neighbors)))) == len(neighbors)
+
+
+def _forward_loop_return(layout, loops):
+    # From an entry port, a train must traverse a catalog route and then
+    # cross a physical joint. It cannot change direction at a port or buffer.
+    mates = {a: b for first, second, _ in layout.joints
+             for a, b in ((first, second), (second, first))}
+    forward, reverse = defaultdict(set), defaultdict(set)
+    for i, piece in enumerate(layout.pieces):
+        for route in piece.part.routes.values():
+            first, second = (i, route.start), (i, route.end)
+            for entry, exit_port in ((first, second), (second, first)):
+                if (next_entry := mates.get(exit_port)) is not None:
+                    forward[entry].add(next_entry)
+                    reverse[next_entry].add(entry)
+
+    outer, inner = (track.moves[0] for track in loops)
+    start = (outer.piece, outer.entry)
+    destinations = {(inner.piece, inner.entry), (inner.piece, inner.exit)}
+    # A return to the same oriented port also yields a round trip in the
+    # opposite direction, since every catalog route is reversible.
+    return bool(destinations & _reachable(forward, start) & _reachable(reverse, start))
 
 
 def _intersections(layout):
@@ -366,12 +392,15 @@ def validate(layout, cfg):
     failure = _check_joints(layout)
     if failure:
         return failure
+    loops = [track for track in layout.tracks if track.kind == "loop"]
+    if (cfg.require_forward_loop_return and layout.mode == "double" and len(loops) == 2
+            and not _forward_loop_return(layout, loops)):
+        return "no forward-only return between running loops"
     if cfg.require_connected_tracks and not _tracks_connected(layout):
         return "track network is disconnected"
     failure = _intersections(layout)
     if failure:
         return failure
-    loops = [track for track in layout.tracks if track.kind == "loop"]
     if len(loops) != (2 if layout.mode == "double" else 1):
         return "continuous route count"
     for i, track in enumerate(loops):
