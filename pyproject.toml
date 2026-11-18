@@ -1,7 +1,7 @@
 [project]
-name = "tillig-tt-layouts"
+name = "railroad-layouts"
 version = "1.0.0"
-description = "Factory-length Tillig TT Modellgleis layout generator"
+description = "Factory-length model railroad layout generator"
 requires-python = ">=3.12"
 dependencies = ["pillow>=11.3,<13", "shapely>=2.1,<3"]
 

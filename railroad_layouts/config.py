@@ -75,7 +75,7 @@ class Config:
 
 
 def read_config(path, catalog, overrides=None):
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8")) if path is not None else {}
     if not isinstance(data, dict):
         raise ValueError("The layout config must be an object")
     data.update(overrides or {})
@@ -84,11 +84,11 @@ def read_config(path, catalog, overrides=None):
         raise ValueError(f"Unknown settings: {', '.join(sorted(extra))}")
     parts = data.pop("parts", {})
     if not isinstance(parts, dict):
-        raise ValueError("parts must be an object keyed by Tillig SKU")
+        raise ValueError("parts must be an object keyed by part SKU")
     limits = {}
     for code, rule in parts.items():
         if code not in catalog:
-            raise ValueError(f"Unknown Tillig part {code}")
+            raise ValueError(f"Unknown part {code} in the selected catalog")
         if not isinstance(rule, dict) or set(rule) - Limit.__dataclass_fields__.keys():
             raise ValueError(f"Use enabled, min_count and max_count for {code}")
         limit = Limit(**rule)

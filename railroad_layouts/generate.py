@@ -5,15 +5,14 @@ from dataclasses import dataclass
 from functools import lru_cache
 from itertools import combinations, cycle, groupby, islice, product
 import logging
-from math import ceil, cos, floor, radians, sin, sqrt
+from math import ceil, cos, floor, inf, radians, sin, sqrt
 from random import Random
 
 from .config import MODES
-from .geometry import Pose, Step, angle_delta, joint_fits, min_radius, spacing
+from .geometry import Pose, Step, angle_delta, catalog_info, joint_fits, min_radius, spacing, track_profile
 from .inventory import priced_families, rebuild, repartition
 from .model import Layout, Move, equivalent, turnout_count, validate
 
-BUFFER = Step("83100", "a-stop")
 _YARD_BASE_FAMILIES = {"diagonal", "passing_oval", "passing_rectangle", "crossover",
                        "paired_crossover", "return_crossovers", "parallel"}
 logger = logging.getLogger(__name__)
@@ -31,12 +30,18 @@ class Stock:
     def __init__(self, catalog, cfg):
         self.catalog = catalog
         self.cfg = cfg
+        self.profile = track_profile(catalog)
+        self.gauge_mm = catalog_info(catalog)["gauge_mm"]
+        self.minimum_radius = min_radius(cfg.vehicle_group, self.gauge_mm)
+        self.buffer = Step(self.profile.buffer_code, "a-stop")
+        self.spacers = tuple((p.routes["a-b"].length, Step(p.code)) for p in catalog.values()
+                             if p.kind == "spacer" and cfg.available(p.code))
         self.straights = sorted(
             ((round(p.routes["a-b"].length * 10), code) for code, p in catalog.items()
              if p.kind == "straight" and cfg.available(code)), reverse=True)
         self.curves = {}
         for code, part in catalog.items():
-            if part.kind == "curve" and cfg.available(code) and part.radius >= min_radius(cfg.vehicle_group):
+            if part.kind == "curve" and cfg.available(code) and part.radius >= self.minimum_radius:
                 self.curves.setdefault(part.radius, []).append(
                     (round(abs(part.routes["a-b"].segments[0].sweep) * 2), code))
         self.sectional_prices = priced_families(self) if cfg.optimize_track_parts else {}
@@ -46,7 +51,25 @@ class Stock:
         self._searched = 0
 
     def available(self, *steps):
-        return all(self.cfg.available(step.code) for step in steps)
+        return all(step.code in self.catalog
+                   and all(self.cfg.available(code) for code in self.catalog[step.code].component_codes)
+                   for step in steps)
+
+    def spacing(self, radius):
+        return spacing(self.cfg.vehicle_group, radius, self.gauge_mm)
+
+    def running_radii(self):
+        return [r for r in sorted(self.curves, reverse=True)
+                if r != self.profile.siding_only_radius and self.curve(r, 90)]
+
+    def fitted_link(self, length):
+        direct = self.straight(length)
+        if direct is not None:
+            yield direct
+        for size, spacer in self.spacers:
+            prefix = self.straight(length - size)
+            if prefix is not None:
+                yield prefix + (spacer,)
 
     def _cost(self, codes):
         return len(codes), tuple(sorted(codes))
@@ -126,7 +149,8 @@ def from_port(layout, move, steps, entry="a", exit="c"):
 
 
 def spur(layout, move, steps, name, parent, *, entry="a", exit="c"):
-    moves = from_port(layout, move, steps + (BUFFER,), entry, exit)
+    buffer = Step(track_profile(layout.catalog).buffer_code, "a-stop")
+    moves = from_port(layout, move, steps + (buffer,), entry, exit)
     return layout.add(name, moves, "spur", parent)
 
 
@@ -135,20 +159,20 @@ def ordinary_modes(stock):
     cfg = stock.cfg
     span, depth = sorted((cfg.width, cfg.height), reverse=True)
     margin = cfg.edge_margin_mm
-    if not cfg.available(BUFFER.code):
+    if not stock.available(stock.buffer):
         return
     turnouts = [p for p in stock.catalog.values() if p.kind in ("turnout", "three_way")
                 and cfg.available(p.code)]
-    for radius, point in product(sorted(stock.curves, reverse=True), turnouts):
+    for radius, point in product(stock.running_radii(), turnouts):
         bend = stock.curve(radius, 90)
-        if radius == 267 or bend is None or 2 * radius + 2 * margin > depth:
+        if 2 * radius + 2 * margin > depth:
             continue
         switch = Step(point.code)
         length = point.routes["a-b"].length
         branch_sign = 1 if point.ports["c"].y > 0 else -1
-        turnout_sweep = point.routes["a-c"].segments[0].sweep
-        spur_recipe = stock.curve(353, -turnout_sweep)
-        for lead in (83, 41.5, 0):
+        turnout_sweep = _branch_angle(point)
+        spur_recipe = stock.curve(stock.profile.countercurve_radius, -turnout_sweep) if turnout_sweep else None
+        for lead in stock.profile.single_leads:
             approach = stock.straight(lead)
             if approach is None:
                 continue
@@ -158,19 +182,19 @@ def ordinary_modes(stock):
                 back = stock.straight(lead + length + remaining)
                 if back is None:
                     continue
-                for side_len in stock.side_lengths(depth-2*radius-2*margin, (0, 83, 166)):
+                for side_len in stock.side_lengths(depth-2*radius-2*margin, stock.profile.side_lengths[:3]):
                     sides = stock.straight(side_len)
                     if sides is None or 2 * radius + side_len + 2 * margin > depth:
                         continue
                     for variant in ("diagonal", "parallel", "ladder"):
                         if variant != "diagonal" and (spur_recipe is None or point.kind == "three_way"):
                             continue
-                        extra = stock.straight(83)
+                        extra = stock.straight(stock.profile.grid_mm)
                         if variant != "diagonal" and extra is None:
                             continue
                         # Reserve length beyond the fouling point so a locomotive
                         # and wagons have room to clear the through track.
-                        for tail_mm in (290.5, 249, 207.5, 166):
+                        for tail_mm in stock.profile.freight_tails:
                             tail = stock.straight(tail_mm)
                             if tail is None:
                                 continue
@@ -195,19 +219,24 @@ def ordinary_modes(stock):
                             elif variant == "parallel":
                                 spur(layout, turnout, extra + spur_recipe + tail, "Goods road", main)
                             else:
-                                yard_point = "83331" if branch_sign > 0 else "83332"
-                                if not cfg.available(yard_point):
+                                yard_code = stock.profile.right_turnout if branch_sign > 0 else stock.profile.left_turnout
+                                yard_point = Step(yard_code)
+                                if not stock.available(yard_point):
                                     continue
                                 yard = from_port(layout, turnout, extra + spur_recipe +
-                                                 (Step(yard_point),) + tail + (BUFFER,))
+                                                 (yard_point,) + tail + (stock.buffer,))
                                 parent = layout.add("Yard road", yard, "spur", main)
                                 spur(layout, yard[len(extra) + len(spur_recipe) + 1], tail, "Loading spur", parent)
                             yield layout
 
 
+def _branch_angle(part):
+    return angle_delta(part.ports["c"].heading, part.ports["a"].heading + 180)
+
+
 def _branches(stock, part):
-    turn = part.routes["a-c"].segments[0].sweep
-    for radius, lead in product(sorted(stock.curves), (41.5, 43, 83, 119.5, 36.5, 0)):
+    turn = _branch_angle(part)
+    for radius, lead in product(sorted(stock.curves), stock.profile.branch_leads):
         curve = stock.curve(radius, -turn)
         straight = stock.straight(lead)
         if curve and straight is not None:
@@ -226,7 +255,7 @@ def passing_modes(stock):
     cfg = stock.cfg
     span, depth = sorted((cfg.width, cfg.height), reverse=True)
     margin = cfg.edge_margin_mm
-    running_radii = [r for r in sorted(stock.curves, reverse=True) if r != 267]
+    running_radii = stock.running_radii()
     if not running_radii:
         return
     turnouts = [p for p in stock.catalog.values() if p.kind == "turnout" and cfg.available(p.code)]
@@ -241,7 +270,7 @@ def passing_modes(stock):
         left_legs = [(steps, _end(stock, a, steps)) for steps in _branches(stock, left)]
         right_legs = [(steps, _end(stock, b, steps)) for steps in _branches(stock, right)]
         for (lead, p), (tail, q) in product(left_legs, right_legs):
-            if abs(p.y - q.y) > .15 or abs(p.y) < 38:
+            if abs(p.y - q.y) > .15 or abs(p.y) < stock.spacing(inf):
                 continue
             gap = p.x - q.x - length
             # 20 mm of stopping room on the platform. Try additional stock
@@ -254,7 +283,7 @@ def passing_modes(stock):
                         continue
                     full = length + tenths / 10
                     dimensions = ((radius, side_mm) for radius in running_radii
-                                  for side_mm in stock.side_lengths(depth-2*radius-2*margin, (0, 83, 166, 249)))
+                                  for side_mm in stock.side_lengths(depth-2*radius-2*margin, stock.profile.side_lengths))
                     for radius, side_mm in dimensions:
                         if full + 2*radius + 2*margin > span + 1e-6 or 2*radius + side_mm + 2*margin > depth + 1e-6:
                             continue
@@ -274,15 +303,15 @@ def passing_modes(stock):
                         yield layout
                         # Where room permits, a station gets a separate industry
                         # road off the opposite side of the main.
-                        if not cfg.available("83100"):
+                        if not stock.available(stock.buffer):
                             continue
                         freight_point = next((v for v in turnouts if v.ports["c"].y > 0), None)
                         if freight_point is None:
                             continue
                         fp_length = freight_point.routes["a-b"].length
-                        prefix = stock.straight(83)
-                        suffix = stock.straight(full - fp_length - 83)
-                        freight_tail = stock.straight(249)
+                        prefix = stock.straight(stock.profile.grid_mm)
+                        suffix = stock.straight(full - fp_length - stock.profile.grid_mm)
+                        freight_tail = stock.straight(3 * stock.profile.grid_mm)
                         if None in (prefix, suffix, freight_tail):
                             continue
                         freight_family = "passing_freight_in" if p.y > 0 else "passing_freight_out"
@@ -315,8 +344,7 @@ def _crossing_links(stock, first, second, offset):
     # Allow for both components of the accepted joint residual.
     allowance = 0.5 + 0.15 * abs(cos(radians(start.heading)) / rise)
     for tenths in range(max(0, ceil(10 * (target - allowance))), floor(10 * (target + allowance)) + 1):
-        link = stock.straight(tenths / 10)
-        if link is not None:
+        for link in stock.fitted_link(tenths / 10):
             yield inner_first, _end(stock, start, link), end, link
 
 
@@ -360,7 +388,7 @@ class _CrossoverApproach:
 def _crossover_approaches(stock, offset):
     cfg = stock.cfg
     points = [part for part in stock.catalog.values() if part.kind == "turnout"
-              and cfg.available(part.code) and part.radius >= min_radius(cfg.vehicle_group)]
+              and cfg.available(part.code) and part.radius >= stock.minimum_radius]
     for first, second in product(points, repeat=2):
         links = tuple(_crossing_links(stock, first, second, offset))
         if not links:
@@ -368,7 +396,7 @@ def _crossover_approaches(stock, offset):
         first_length = first.routes["a-b"].length
         second_length = second.routes["a-b"].length
         approaches = []
-        for lead_length in (0, 83, 166):
+        for lead_length in stock.profile.side_lengths[:3]:
             lead = stock.straight(lead_length)
             if lead is None:
                 continue
@@ -480,21 +508,72 @@ def _return_crossovers(stock, bend, inner_bend, offset, high, side_high, side_le
                                                upper, returning, sides, back, 1)
 
 
+def _tillig_double_crossovers(stock, bend, inner_bend, sides, offset, high):
+    cfg = stock.cfg
+    # Find a stock prefix such that its length plus 251 mm
+    # has an exact, all-straight counterpart on the return side.
+    prefixes = [(v, stock.straight(v), stock.straight(v+251))
+                for v in (122.5, 164, 143.8, 159, 165.5, 205.5)]
+    for prefix_mm, prefix, opposite in prefixes:
+        if prefix is None or opposite is None:
+            continue
+        extensions = list(stock.runs(max(0, cfg.train_length - prefix_mm - 251),
+                                     high - prefix_mm - 251, 55))
+        if prefix_mm + 251 >= cfg.train_length and prefix_mm + 251 <= high:
+            extensions.append((0, ()))
+        for extension, rest in extensions:
+            title = "Double track crossover"
+            layout = Layout(stock.catalog, "double", "crossover", title,
+                            "Run a train on each loop with the crossover lined straight. Stop the other train before crossing over.")
+            outer_top, outer_rest = running_loop(
+                layout, Pose(), prefix + (Step("83212"),) + rest, opposite + rest, bend, sides)
+            layout.add("Outer main", outer_top + outer_rest, "loop")
+            inner_prefix = layout.lay(Pose(0, offset, 0), prefix)
+            cross = layout.branch(outer_top[len(prefix)], "c", "d")
+            following = layout.lay(layout.port(cross, True), rest + inner_bend + sides
+                                   + inner_bend + opposite + rest + inner_bend + sides + inner_bend)
+            layout.add("Inner main", inner_prefix + (cross,) + following, "loop")
+            layout.parallel_mm = prefix_mm + 251 + extension
+            yield layout
+            length = layout.parallel_mm
+            if not stock.available(stock.buffer, Step(stock.profile.right_turnout)):
+                continue
+            lead = stock.straight(83)
+            after = stock.straight(length - 249)
+            tail = stock.straight(249)
+            if None in (lead, after, tail):
+                continue
+            freight = Layout(stock.catalog, "double", "crossover_freight", "Crossover and goods road",
+                             "Hold the other train while the local crosses over, then switch the goods road from the inner main.")
+            top, lower = running_loop(freight, Pose(), prefix + (Step("83212"),) + rest,
+                                      opposite + rest, bend, sides)
+            freight.add("Outer main", top + lower, "loop")
+            inner_top = freight.lay(Pose(0, offset, 0), prefix)
+            cross = freight.branch(top[len(prefix)], "c", "d")
+            cap = inner_bend + sides + inner_bend
+            inner_lower = freight.lay(freight.port(cross, True),
+                rest + cap + lead + (Step("83331"),) + after + cap)
+            main = freight.add("Inner main", inner_top + (cross,) + inner_lower, "loop")
+            spur(freight, inner_lower[len(rest) + len(cap) + len(lead)], tail, "Goods road", main)
+            freight.parallel_mm = length
+            yield freight
+
+
 def double_modes(stock):
     cfg = stock.cfg
     span, depth = sorted((cfg.width, cfg.height), reverse=True)
     margin = cfg.edge_margin_mm
-    running_radii = [r for r in sorted(stock.curves, reverse=True) if r != 267]
+    running_radii = stock.running_radii()
     for outer, inner in product(running_radii, repeat=2):
         offset = outer - inner
-        if offset < spacing(cfg.vehicle_group, inner) or 2*outer + 2*margin > depth:
+        if offset < stock.spacing(inner) or 2*outer + 2*margin > depth:
             continue
         bend, inner_bend = stock.curve(outer, 90), stock.curve(inner, 90)
         if bend is None or inner_bend is None:
             continue
         high = span - 2*outer - 2*margin
         side_high = depth - 2*outer - 2*margin
-        side_lengths = stock.side_lengths(side_high, (0, 83, 166, 249))
+        side_lengths = stock.side_lengths(side_high, stock.profile.side_lengths)
         if cfg.require_forward_loop_return:
             yield from _return_crossovers(stock, bend, inner_bend, offset, high, side_high,
                                           (length for length in side_lengths if length <= side_high))
@@ -502,56 +581,12 @@ def double_modes(stock):
             sides = stock.straight(side_mm)
             if sides is None or 2*outer + side_mm + 2*margin > depth:
                 continue
-            if (cfg.strategy == "longest_tracks" or cfg.require_interior) and not cfg.require_forward_loop_return:
+            if (not cfg.require_forward_loop_return
+                    and (cfg.strategy == "longest_tracks" or cfg.require_interior
+                         or (cfg.require_connected_tracks and not stock.profile.tillig_formations))):
                 yield from _paired_crossovers(stock, bend, inner_bend, sides, offset, high)
-            if offset == 43 and cfg.available("83212"):
-                # Find a stock prefix such that its length plus 251 mm
-                # has an exact, all-straight counterpart on the return side.
-                prefixes = [(v, stock.straight(v), stock.straight(v+251))
-                            for v in (122.5, 164, 143.8, 159, 165.5, 205.5)]
-                for prefix_mm, prefix, opposite in prefixes:
-                    if prefix is None or opposite is None:
-                        continue
-                    extensions = list(stock.runs(max(0, cfg.train_length - prefix_mm - 251),
-                                                 high - prefix_mm - 251, 55))
-                    if prefix_mm + 251 >= cfg.train_length and prefix_mm + 251 <= high:
-                        extensions.append((0, ()))
-                    for extension, rest in extensions:
-                        title = "Double track crossover"
-                        layout = Layout(stock.catalog, "double", "crossover", title,
-                                        "Run a train on each loop with the crossover lined straight. Stop the other train before crossing over.")
-                        outer_top, outer_rest = running_loop(
-                            layout, Pose(), prefix + (Step("83212"),) + rest, opposite + rest, bend, sides)
-                        layout.add("Outer main", outer_top + outer_rest, "loop")
-                        inner_prefix = layout.lay(Pose(0, offset, 0), prefix)
-                        cross = layout.branch(outer_top[len(prefix)], "c", "d")
-                        following = layout.lay(layout.port(cross, True), rest + inner_bend + sides
-                                               + inner_bend + opposite + rest + inner_bend + sides + inner_bend)
-                        layout.add("Inner main", inner_prefix + (cross,) + following, "loop")
-                        layout.parallel_mm = prefix_mm + 251 + extension
-                        yield layout
-                        length = layout.parallel_mm
-                        if not stock.available(BUFFER, Step("83331")):
-                            continue
-                        lead = stock.straight(83)
-                        after = stock.straight(length - 249)
-                        tail = stock.straight(249)
-                        if None in (lead, after, tail):
-                            continue
-                        freight = Layout(stock.catalog, "double", "crossover_freight", "Crossover and goods road",
-                                         "Hold the other train while the local crosses over, then switch the goods road from the inner main.")
-                        top, lower = running_loop(freight, Pose(), prefix + (Step("83212"),) + rest,
-                                                  opposite + rest, bend, sides)
-                        freight.add("Outer main", top + lower, "loop")
-                        inner_top = freight.lay(Pose(0, offset, 0), prefix)
-                        cross = freight.branch(top[len(prefix)], "c", "d")
-                        cap = inner_bend + sides + inner_bend
-                        inner_lower = freight.lay(freight.port(cross, True),
-                            rest + cap + lead + (Step("83331"),) + after + cap)
-                        main = freight.add("Inner main", inner_top + (cross,) + inner_lower, "loop")
-                        spur(freight, inner_lower[len(rest) + len(cap) + len(lead)], tail, "Goods road", main)
-                        freight.parallel_mm = length
-                        yield freight
+            if stock.profile.tillig_formations and offset == 43 and stock.available(Step("83212")):
+                yield from _tillig_double_crossovers(stock, bend, inner_bend, sides, offset, high)
             for length, straight in stock.runs(cfg.train_length, high, 55):
                 layout = Layout(stock.catalog, "double", "parallel",
                                 "Independent double track", "Run passenger and freight trains simultaneously on their own tracks.")
@@ -561,12 +596,12 @@ def double_modes(stock):
                 layout.add("Inner main", top + rest, "loop")
                 layout.parallel_mm = length
                 yield layout
-                if not stock.available(BUFFER, Step("83331")):
+                if not stock.available(stock.buffer, Step(stock.profile.right_turnout)):
                     continue
-                point = stock.catalog["83331"]
-                lead = stock.straight(83)
-                after = stock.straight(length - 83 - point.routes["a-b"].length)
-                tail = stock.straight(249)
+                point = stock.catalog[stock.profile.right_turnout]
+                lead = stock.straight(stock.profile.grid_mm)
+                after = stock.straight(length - stock.profile.grid_mm - point.routes["a-b"].length)
+                tail = stock.straight(3 * stock.profile.grid_mm)
                 if None in (lead, after, tail):
                     continue
                 freight = Layout(stock.catalog, "double", "double_freight", "Double track and freight",
@@ -574,7 +609,7 @@ def double_modes(stock):
                 top, rest = running_loop(freight, Pose(), straight, straight, bend, sides)
                 freight.add("Outer main", top + rest, "loop")
                 top, rest = running_loop(freight, Pose(0, offset, 0),
-                                         lead + (Step("83331"),) + after, straight, inner_bend, sides)
+                                         lead + (Step(point.code),) + after, straight, inner_bend, sides)
                 inner_main = freight.add("Inner main", top + rest, "loop")
                 spur(freight, top[len(lead)], tail, "Goods road", inner_main)
                 freight.parallel_mm = length
@@ -601,15 +636,15 @@ def _station_approaches(stock):
     cfg = stock.cfg
     for point in stock.catalog.values():
         if (point.kind != "turnout" or not cfg.available(point.code)
-                or point.radius < min_radius(cfg.vehicle_group)):
+                or point.radius < stock.minimum_radius):
             continue
         start = _end(stock, Pose(), (Step(point.code, "a-c"),))
         for steps in _branches(stock, point):
             radius = min(point.radius, *(stock.catalog[step.code].radius for step in steps))
-            if radius == 267:
+            if radius == stock.profile.siding_only_radius:
                 continue
             end = _end(stock, start, steps)
-            if abs(end.y) >= spacing(cfg.vehicle_group, radius):
+            if abs(end.y) >= stock.spacing(radius):
                 yield _StationApproach(point.code, steps, end)
 
 
@@ -643,7 +678,7 @@ def _station_roads(stock, pairs, length, minimum):
 def _station_sides(stock, approaches, room, budget):
     cfg = stock.cfg
     if not (cfg.require_connected_tracks or cfg.require_forward_loop_return):
-        for length in stock.side_lengths(room, (0, 83, 166, 249)):
+        for length in stock.side_lengths(room, stock.profile.side_lengths):
             if length <= room and (run := stock.straight(length)) is not None:
                 yield run, (None, None)
     needed = 4 if cfg.require_forward_loop_return else 2
@@ -703,12 +738,12 @@ def station_modes(stock):
     pairs = sorted(((a, b) for a, b in product(legs, repeat=2)
                     if a.end.y*b.end.y < 0 and abs(a.end.y+b.end.y) <= .150001),
                    key=lambda pair: pair[0].end.x + pair[1].end.x)
-    radii = sorted(r for r in stock.curves if r >= 310 and stock.curve(r, 90))
+    radii = list(reversed(stock.running_radii()))
     for inner, outer in combinations(radii, 2):
         offset = outer - inner
         side_high = depth - 2*outer - 2*margin
         high = span - 2*outer - 2*margin
-        if offset < spacing(cfg.vehicle_group, inner) or side_high < 0 or high < minimum:
+        if offset < stock.spacing(inner) or side_high < 0 or high < minimum:
             continue
         curves = (stock.curve(outer, 90), stock.curve(inner, 90))
         approaches = tuple(a for entries in _crossover_approaches(stock, offset) for a in entries)
@@ -739,20 +774,19 @@ def station_modes(stock):
 
 
 def specialty_modes(stock):
-    cfg = stock.cfg
-    if not cfg.available(BUFFER.code):
+    if not stock.profile.tillig_formations or not stock.available(stock.buffer):
         return
     for code in ("83161", "83170", "83300"):
         # The offset curves bring the branch back toward the crossing. At the
         # crossing it traverses the other through route and continues to a buffer.
-        if not cfg.available(code):
+        if not stock.available(Step(code)):
             continue
         is_k2 = code == "83170"
         formations = (("83329", 364.4), ("83332", 364.5), ("83332", 364.6)) if is_k2 else (
             ("83329", 177.3), ("83332", 177.3))
         cross_route = "c-d"
         for point, offset in formations:
-            if not cfg.available(point):
+            if not stock.available(Step(point)):
                 continue
             lead = stock.straight(offset)
             flat = stock.straight(119.5 if is_k2 else 0)
@@ -763,7 +797,7 @@ def specialty_modes(stock):
             branch = flat + r22 + r12
             crossing = Step(code, cross_route)
             for radius in sorted(stock.curves, reverse=True):
-                if radius == 267:
+                if radius == stock.profile.siding_only_radius:
                     continue
                 bend = stock.curve(radius, 90)
                 if not bend:
@@ -785,13 +819,13 @@ def specialty_modes(stock):
                     main = layout.add("Main line", upper + rest, "loop")
                     approach = from_port(layout, upper[0], branch)
                     crossing_move = layout.branch(upper[-len(suffix)-1], "a", "b")
-                    exit_path = layout.lay(layout.port(crossing_move, True), spur_tail + (BUFFER,))
+                    exit_path = layout.lay(layout.port(crossing_move, True), spur_tail + (stock.buffer,))
                     layout.add("Goods road", approach + (crossing_move,) + exit_path, "spur", main)
                     yield layout
 
     # An IBW can replace the first R310/30° piece exactly on its tight route.
     for code, route, exit_port in (("83363", "a-b", "c"), ("83364", "b-a", "c")):
-        if not cfg.available(code):
+        if not stock.available(Step(code)):
             continue
         bend = stock.curve(310, 90)
         rest_bend = stock.curve(310, 60)
@@ -818,11 +852,11 @@ def specialty_modes(stock):
                 yield layout
 
     for code in ("83380", "83382"):
-        if not cfg.available(code):
+        if not stock.available(Step(code)):
             continue
         angle = stock.catalog[code].routes["a-c"].segments[0].sweep
         for radius in sorted(stock.curves):
-            if radius == 267:
+            if radius == stock.profile.siding_only_radius:
                 continue
             bend = stock.curve(radius, 180 - angle) if code == "83380" else stock.curve(radius, 180)
             if bend is None:
@@ -895,7 +929,8 @@ def _keep_yard_base(layout, bases):
                   if layout.pieces[move.piece].part.kind == "curve")
     passing_inside = any(track.kind == "passing" and layout.port(track.moves[0], True).y > front_y
                          for track in layout.tracks)
-    band = (layout.family, round(span / 83), round(depth / 83), passing_inside)
+    grid = track_profile(layout.catalog).grid_mm
+    band = (layout.family, round(span / grid), round(depth / grid), passing_inside)
     shelf = bases.setdefault(band, [])
     shelf.append((layout.total_track_length_mm, _YardBase(layout, parent, run, span, depth, radius)))
     shelf.sort(key=lambda row: row[0], reverse=True)
@@ -903,24 +938,24 @@ def _keep_yard_base(layout, bases):
 
 
 def _yard_entries(stock):
-    if not stock.available(BUFFER) or not stock.cfg.max_turnouts:
+    if not stock.available(stock.buffer) or not stock.cfg.max_turnouts:
         return
     for point in stock.catalog.values():
         if (point.kind != "turnout" or not stock.cfg.available(point.code)
-                or point.radius < min_radius(stock.cfg.vehicle_group) or point.ports["c"].y <= 0):
+                or point.radius < stock.minimum_radius or point.ports["c"].y <= 0):
             continue
         start = _end(stock, Pose(), (Step(point.code, "a-c"),))
         approaches = []
         for steps in _branches(stock, point):
             offset = _end(stock, start, steps)
             radius = min(point.radius, *(stock.catalog[step.code].radius for step in steps))
-            if offset.y >= spacing(stock.cfg.vehicle_group, radius):
+            if offset.y >= stock.spacing(radius):
                 approaches.append(_YardApproach(steps, offset, radius))
         if approaches:
             yield Step(point.code), tuple(sorted(approaches, key=lambda option: option.offset.x))
 
 
-def _build_yard(base, point, suffix, roads, *, folded=False):
+def _build_yard(base, point, suffix, roads, buffer, *, folded=False):
     switch_index = base.layout.tracks[base.parent].moves.index(base.run[0])
     plan = rebuild(base.layout, {base.run[0]: (base.run, (point,) + suffix)})
     plan.family += "_folded" if folded else "_interior"
@@ -931,7 +966,7 @@ def _build_yard(base, point, suffix, roads, *, folded=False):
     switch = plan.tracks[parent].moves[switch_index]
     first_road = len(plan.tracks)
     for number, road in enumerate(roads, 1):
-        moves = from_port(plan, switch, road.steps + (BUFFER,))
+        moves = from_port(plan, switch, road.steps + (buffer,))
         parent = plan.add(f"Interior road {number}", moves, "spur", parent)
         if road.next_point is not None:
             switch = moves[road.next_point + 1]
@@ -940,13 +975,13 @@ def _build_yard(base, point, suffix, roads, *, folded=False):
 
 
 def _straight_yard_roads(base, stock, point, entry, limit):
-    buffer_length = mm((BUFFER,), stock.catalog)
+    buffer_length = stock.catalog[stock.buffer.code].track_length_mm
     point_length = mm((point,), stock.catalog)
     dx, dy = entry.offset.xy
-    clearance = spacing(stock.cfg.vehicle_group, entry.radius)
+    clearance = stock.spacing(entry.radius)
     road_limit = min(limit, int(max(0, base.depth - clearance) / dy),
                      int(max(0, base.span - buffer_length) / dx))
-    for road_count, shorter_by in product(range(1, road_limit + 1), (0, 83)):
+    for road_count, shorter_by in product(range(1, road_limit + 1), (0, stock.profile.grid_mm)):
         roads = []
         for road_index in range(road_count):
             has_branch = road_index < road_count - 1
@@ -970,8 +1005,8 @@ def _nested_approaches(stock, radii, entry, approaches):
         gap = outer - inner
         # Keep the stock arc centers aligned closely enough to preserve
         # clearance on both the approach and return sides of each bend.
-        candidates = (option for option in approaches if abs(option.offset.y - gap) + 0.5 <= gap - spacing(
-            stock.cfg.vehicle_group, min(inner, selected[-1].radius, option.radius)))
+        candidates = (option for option in approaches if abs(option.offset.y - gap) + 0.5 <=
+                      gap - stock.spacing(min(inner, selected[-1].radius, option.radius)))
         match = min(candidates, key=lambda option: abs(option.offset.y - gap), default=None)
         if match is None:
             return ()
@@ -1006,7 +1041,7 @@ def _folded_stems(base, stock, point, radii, approaches, clearance, padding):
 def _folded_return_roads(base, stock, point, stems, entry, road_limit, clearance):
     # Intersect each return lane with the inset rounded rectangle on its far
     # side. The normal validator checks the completed path and pointwork.
-    buffer_length = mm((BUFFER,), stock.catalog)
+    buffer_length = stock.catalog[stock.buffer.code].track_length_mm
     point_length = mm((point,), stock.catalog)
     inset_radius = base.radius - clearance
 
@@ -1047,10 +1082,10 @@ def _folded_return_roads(base, stock, point, stems, entry, road_limit, clearance
 def _interior_yards(base, stock, entries):
     cfg = stock.cfg
     inventory = base.layout.inventory
-    buffer_limit = cfg.parts.get(BUFFER.code)
     road_limit = cfg.max_turnouts - turnout_count(stock.catalog, inventory)
+    buffer_limit = cfg.parts.get(stock.buffer.code)
     if buffer_limit is not None and buffer_limit.max_count is not None:
-        road_limit = min(road_limit, buffer_limit.max_count - inventory[BUFFER.code])
+        road_limit = min(road_limit, buffer_limit.max_count - inventory[stock.buffer.code])
     minimum = max(1, cfg.min_interior_sidings)
     if road_limit < minimum:
         return
@@ -1066,25 +1101,25 @@ def _interior_yards(base, stock, entries):
         if point_limit is not None and point_limit.max_count is not None:
             limit = min(limit, point_limit.max_count - inventory[point.code])
         entry = next((option for option in approaches
-                      if option.offset.y >= spacing(cfg.vehicle_group, option.radius) + 5), None)
+                      if option.offset.y >= stock.spacing(option.radius) + 5), None)
         if entry is None or limit < minimum:
             continue
         if cfg.interior_style == "any":
             for roads in _straight_yard_roads(base, stock, point, entry, limit):
                 if len(roads) >= minimum:
-                    yield _build_yard(base, point, suffix, roads)
+                    yield _build_yard(base, point, suffix, roads, stock.buffer)
         for count in range(1, min(len(fold_radii), limit) + 1):
             for radii in combinations(fold_radii, count):
                 selected = _nested_approaches(stock, radii, entry, approaches)
                 if not selected:
                     continue
-                clearance = spacing(cfg.vehicle_group, min(base.radius, *radii, *(a.radius for a in selected)))
+                clearance = stock.spacing(min(base.radius, *radii, *(a.radius for a in selected)))
                 for padding in (10, 70):
                     stems = _folded_stems(base, stock, point, radii, selected, clearance, padding)
                     if stems:
                         for roads in _folded_return_roads(base, stock, point, stems, entry, limit, clearance + 8):
                             if len(roads) >= minimum:
-                                yield _build_yard(base, point, suffix, roads, folded=True)
+                                yield _build_yard(base, point, suffix, roads, stock.buffer, folded=True)
 
 
 def score(layout, strategy):
@@ -1264,15 +1299,16 @@ def generate(catalog, cfg):
     stock = Stock(catalog, cfg)
     rng = Random(cfg.seed)
     rejected = Counter()
-    running_radii = [r for r in stock.curves if r >= 310 and stock.curve(r, 90)]
+    running_radii = stock.running_radii()
     if not running_radii:
         return [], Counter({"no enabled main-line curve can form a 90° bend for this vehicle group": 1})
     if min(cfg.width, cfg.height) + 1e-6 < 2 * (min(running_radii) + cfg.edge_margin_mm):
         return [], Counter({"board and edge margin cannot fit the minimum main-line diameter": 1})
-    if cfg.mode == "single" and not cfg.available("83100"):
-        return [], Counter({"a freight spur needs a buffer stop (83100)": 1})
-    if cfg.require_interior and not cfg.available(BUFFER.code):
-        return [], Counter({"interior sidings need buffer stops (83100)": 1})
+    if (cfg.mode == "single" or cfg.require_interior) and not stock.available(stock.buffer):
+        buffer = catalog.get(stock.buffer.code)
+        codes = " + ".join(buffer.component_codes) if buffer else stock.buffer.code
+        purpose = "interior sidings" if cfg.require_interior else "a freight spur"
+        return [], Counter({f"buffer stop stock required for {purpose} ({codes})": 1})
     if cfg.mode in ("passing", "double") and cfg.train_length + 2 * (
         min(running_radii) + cfg.edge_margin_mm
     ) > max(cfg.width, cfg.height):

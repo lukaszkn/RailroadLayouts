@@ -1,6 +1,6 @@
-# Tillig TT layout generator
+# RailroadLayouts
 
-Generate to-scale assembly drawings for a flat model railroad using fixed-length Tillig TT Modellgleis. The included [10 example plans](examples/index.md) fit a 160 × 120 cm board and use the 25 cm train-length setting, MOROP vehicle group B, and DCC.
+Generate to-scale assembly drawings for a flat model railroad using fixed-length Tillig TT Modellgleis or unballasted Roco Line H0 Code 83. The included [10 Tillig examples](examples/index.md) fit a 160 × 120 cm board and use the 25 cm train-length setting, MOROP vehicle group B, and DCC.
 
 The checked-in examples are from an earlier run. `05-double` and `10-double` have independent loops.
 
@@ -10,21 +10,20 @@ From this directory, with [uv](https://docs.astral.sh/uv/) installed:
 
 ```sh
 uv sync --locked --python 3.12
-uv run --locked python -m tt_layouts --output output/my-layouts
-uv run --locked python -m tt_layouts --mode passing --train-length-cm 30 --count 4 --output output/station
-uv run --locked python -m tt_layouts --mode double --strategy longest --output output/double-main
-uv run --locked python -m tt_layouts --strategy longest --output output/longest
-uv run --locked python -m tt_layouts --strategy longest_tracks --output output/longest-tracks
+uv run --locked python -m railroad_layouts --output output/my-layouts
+uv run --locked python -m railroad_layouts --catalog roco_line_h0.json --output output/roco-h0
+uv run --locked python -m railroad_layouts --mode passing --train-length-cm 30 --count 4 --output output/station
+uv run --locked python -m railroad_layouts --mode double --strategy longest --output output/double-main
+uv run --locked python -m railroad_layouts --strategy longest --output output/longest
+uv run --locked python -m railroad_layouts --strategy longest_tracks --output output/longest-tracks
 uv run --locked python -m unittest discover -s tests -v
-
-uv run --locked python -m tt_layouts --output output/my-layouts --count 50 && uv run --locked python -m tt_layouts --strategy longest --output output/longest --count 50 && uv run --locked python -m tt_layouts --strategy longest_tracks --output output/longest-tracks --count 50
 ```
 
-`uv sync` creates `.venv`. You can also run `.venv/bin/python -m tt_layouts` directly. After setup, generation runs locally with no network access. Use a fresh output directory for each run. Exit status 0 means the requested count was met, 1 means a partial or empty result with a shortfall report, and 2 means an input or export error.
+`uv sync` creates `.venv`. You can also run `.venv/bin/python -m railroad_layouts` directly. The earlier `python -m tt_layouts` entry point and imports still work. After setup, generation runs locally with no network access. Use a fresh output directory for each run. Exit status 0 means the requested count was met, 1 means a partial or empty result with a shortfall report, and 2 means an input or export error.
 
 ## Choose the layout and inventory
 
-Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override the corresponding JSON settings. `--config` selects another JSON file.
+The default Tillig catalog uses [layout.json](layout.json). Selecting the bundled Roco catalog uses [layout.roco_line_h0.json](layout.roco_line_h0.json), which generates freight, passing, and connected double-track alternatives for a 240 × 160 cm board with 35 cm Group B trains and 55 mm of edge clearance. Use `--config` to select another JSON file with inventory rules for the selected catalog. CLI flags override the corresponding JSON settings.
 
 | Setting | Default | Meaning |
 |---|---:|---|
@@ -45,9 +44,9 @@ Edit [layout.json](layout.json) or use the CLI flags above. CLI flags override t
 
 Set `"min_turnouts": 5` and `"max_turnouts": 8` in `layout.json` to require five to eight turnouts per plan, inclusive. The generator counts one turnout per drive listed in the catalog. A double crossover counts as four, a three-way turnout or double slip counts as two, and a fixed crossing counts as zero. If too few plans meet the turnout limits, the generator reports a shortfall.
 
-`longest_tracks` counts both main lines, sidings, yard roads, passing tracks, and all routes through installed pointwork. It counts shared centerline sections once and includes the track up to each buffer stop. The search tries folded sidings with nested curves and branches off the return legs. In double mode it also tries linking the two loops with two ordinary turnouts and, where needed, a stock straight between them.
+`longest_tracks` counts both main lines, sidings, yard roads, passing tracks, and all routes through installed pointwork. It counts shared centerline sections once and includes the full rail section under a buffer stop. The search tries folded sidings with nested curves and branches off the return legs. In double mode it also tries linking the two loops with two ordinary turnouts and, where needed, a stock straight between them.
 
-With `require_forward_loop_return` enabled, the search can use an 83212 double crossover or two ordinary crossovers with opposite orientations. It applies to double-track plans selected in `mixed` mode and takes effect independently of `require_connected_tracks`. The run report records the setting and any shortfall due to available space or stock.
+With `require_forward_loop_return` enabled, the search tries two ordinary crossovers with opposite orientations or, for Tillig, an 83212 double crossover. It applies to double-track plans selected in `mixed` mode and takes effect independently of `require_connected_tracks`. The run report records the setting and any shortfall due to available space or stock.
 
 With `"ignore_similar_percentage": 0.10`, the generator skips a plan when it has the same named tracks as an earlier selected plan of the same mode and every corresponding length is within 10% of that plan's track length. A double-track plan with a goods road and one with only the two laps can both be selected. If too few plans meet the requested diversity, the run reports a shortfall.
 
@@ -67,10 +66,11 @@ Absent rules allow any quantity. `max_count: null` means unlimited, and `max_cou
 
 ### Multi-track station and interior yard
 
-The [station preset](layout.station.json) asks for three or four parallel through tracks and at least two interior sidings on the 160 × 120 cm board.
+Choose the [Tillig station preset](layout.station.json) or the [Roco H0 station preset](layout.roco_line_h0.station.json). The Roco preset asks for three or four through tracks, forward return, and two interior sidings with a curved approach.
 
 ```sh
-uv run --locked python -m tt_layouts --config layout.station.json --output output/stations
+uv run --locked python -m railroad_layouts --config layout.station.json --output output/stations
+uv run --locked python -m railroad_layouts --catalog roco_line_h0.json --config layout.roco_line_h0.station.json --output output/roco-station
 ```
 
 | Setting | Default | Meaning |
@@ -81,13 +81,13 @@ uv run --locked python -m tt_layouts --config layout.station.json --output outpu
 | `interior_style` | `any` | Use `curved_yard` to require a yard with a curved approach inside the running loops. |
 | `min_interior_sidings` | 0 | Minimum number of usable buffer-ended sidings inside the running loops. |
 
-Setting a station bound or a station length enables the station search in `double` or `mixed` mode. The template adds up to two tracks to the mains along a long board edge, with turnouts at both ends of each added track. With forward return enabled, ordinary crossovers go on the short sides. This leaves the opposite long edge available for the interior yard. The station preset allows ten turnout drives to fit the two crossovers, four station turnouts, and two yard turnouts in a four-track plan.
+Setting a station bound or a station length enables the station search in `double` or `mixed` mode. The template adds up to two tracks to the mains along a long board edge, with turnouts at both ends of each added track. With forward return enabled, ordinary crossovers go on the short sides. This leaves the opposite long edge available for the interior yard. A four-track plan with two interior sidings and ordinary forward-return crossovers uses ten turnout drives.
 
 The interior requirements also work on their own. They enable the interior-yard search with any ranking strategy. Station plans report `station_track_count` and `station_usable_length_mm` in both `run.json` and `placement.json`.
 
 ### Track part optimization
 
-The optimizer uses a snapshot of [Tillig's per-piece shop prices](https://shop.tillig.com/de/tt-modellbahnen/modellgleissystem/gleise/) from 16 November 2026. Prices are stored as `unit_price_eur_cents` in the catalog so generation works offline. Each plan minimizes the price of its eligible runs, then the number of pieces, subject to the plan's overall inventory limits. A custom catalog family needs prices for every enabled SKU to use price optimization.
+The optimizer uses per-piece prices stored as `unit_price_eur_cents` in each catalog so generation works offline. Each plan minimizes the price of its eligible runs, then the number of pieces, subject to the plan's overall inventory limits. A custom catalog family needs prices for every enabled SKU to use price optimization. [Tillig shop](https://shop.tillig.com/de/tt-modellbahnen/modellgleissystem/gleise/) · [Roco shop](https://www.roco.cc/ren/products.html?cat=224%2C230%2C239%2C255%2C281%2C330&p=27)
 
 Straight runs must match in length. Curve runs must match in radius, turn direction, and total sweep. Pointwork, buffer stops, shared pieces, and joint gaps mark run boundaries. The optimizer can combine more pieces than the examples below when their geometry matches exactly.
 
@@ -104,11 +104,13 @@ Straight runs must match in length. Curve runs must match in radius, turn direct
 
 Browse the `all/` folder in a generated run to see every drawing in plan order. Filenames use three-digit numbering, such as `001-single-layout.jpg`.
 
-Open the output `index.md` to compare operating moves, total track length, longest lap, usable track lengths, and motor counts. The total also appears as `total_track_length_mm` in `run.json` and `placement.json`. The 3000 × 2360 JPG shows a board outline, centimetre grid, scale bar, joints and one label per physical piece. The first number in a label is the placement ID. The second is the Tillig SKU. Each `shopping.csv` lists actual piece quantities and an under-baseboard motor option where needed. Buy against the list for the alternative you choose. `placement.json` gives origin, rotation, connector poses, traversable routes, and the measured joint residuals in millimetres and degrees.
+Open the output `index.md` to compare operating moves, total track length, longest lap, usable track lengths, and motor counts. Both `run.json` and `placement.json` record the selected catalog and total track length. The 3000 × 2360 JPG shows a board outline, centimetre grid, scale bar, joints, and labels with placement IDs and SKUs. Each `shopping.csv` lists actual piece quantities and an under-baseboard motor option where needed. Its SKU column is `tillig_code` for Tillig and `part_code` for Roco. `placement.json` gives origin, rotation, connector poses, traversable routes, and the measured joint residuals in millimetres and degrees.
 
 Track plans assume DCC. On double-track designs with a crossover, simultaneous circulation uses the two through routes. Stop conflicting movements before lining the crossover diagonally. Pointwork manuals cover frog wiring, insulation and installation of drives. Add power feeds, wiring and other electrical supplies for your installation.
 
 ## Geometry and coverage
+
+[roco_line_h0.json](roco_line_h0.json) covers unballasted Roco Line Code 83 at 1:87, with 16.5 mm gauge and a 2.1 mm rail profile. It includes the standard fixed straights and curves, both hands of the 15° and 10° turnouts, and factory spacers. The turnout routes use nominal connector positions derived from the 61.6 mm grid. Each 42608 clip-on stop sits 40 mm before the end of a 42412 G½ section. The shopping list counts both components, and usable siding length ends at the stop. [Roco geometry guide](https://www.roco.cc/documents/service/downloads/81229_Rocoline_de.pdf#page=5) · [Roco buffer stop](https://www.roco.cc/ren/products/tracks/h0-roco-line/others/42608-buffer-stop-construction-kit.html)
 
 [tillig_tt.json](tillig_tt.json) stores the actual 12 mm gauge and 2.07 mm rail height, nominal dimensions, connector poses, route centerlines and manufacturer links. It includes straights, curves, buffer stops, EW1/EW2/EW3, IBW, ABW, three-way points, both fixed diamonds, DKW I and DGV. 83391 Baeseler is reference-only because Tillig publishes conflicting dimensions. The older Tillig dimensioned drawing shows the EW3 12° exit used here. The 83212 uses its published 251 × 43 mm connector footprint and a derived internal drawing.
 

@@ -1,0 +1,18 @@
+{
+  "width_cm": 240,
+  "height_cm": 160,
+  "count": 1,
+  "mode": "double",
+  "train_length_cm": 35,
+  "vehicle_group": "B",
+  "edge_margin_mm": 55,
+  "require_forward_loop_return": true,
+  "strategy": "balanced",
+  "min_station_tracks": 3,
+  "max_station_tracks": 4,
+  "interior_style": "curved_yard",
+  "min_interior_sidings": 2,
+  "parts": {
+    "42608": {"max_count": 2}
+  }
+}

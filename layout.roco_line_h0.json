@@ -1,0 +1,10 @@
+{
+  "width_cm": 240,
+  "height_cm": 160,
+  "count": 5,
+  "mode": "mixed",
+  "train_length_cm": 35,
+  "vehicle_group": "B",
+  "edge_margin_mm": 55,
+  "require_forward_loop_return": true
+}

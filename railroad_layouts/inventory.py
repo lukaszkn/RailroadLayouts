@@ -111,7 +111,7 @@ def repartition(layout, stock, initial_counts, *, by_price=False):
         original_codes = [tuple(layout.pieces[move.piece].part.code for move in moves)
                           for _, _, moves in entries]
         # Shared pieces and other fixed parts count toward the same inventory limits.
-        fixed = initial_counts - Counter(code for codes in original_codes for code in codes) if prices else {}
+        fixed = initial_counts - Counter(code for codes in original_codes for code in codes)
         minima = tuple(max(0, relevant[code].min_count - fixed.get(code, 0)) for _, code in bounded)
         maxima = tuple(None if relevant[code].max_count is None
                        else relevant[code].max_count - fixed.get(code, 0) for _, code in bounded)

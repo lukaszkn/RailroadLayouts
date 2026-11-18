@@ -11,7 +11,7 @@ from shapely.affinity import rotate, translate
 from shapely.geometry import LineString, Point
 from shapely.strtree import STRtree
 
-from .geometry import Piece, Pose, align, angle_delta, joint_fits, min_radius, residual, spacing
+from .geometry import Piece, Pose, align, angle_delta, catalog_info, joint_fits, min_radius, residual, spacing, track_profile
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,7 @@ class Track:
 class Layout:
     def __init__(self, catalog, mode, family, title, instructions):
         self.catalog = catalog
+        self.gauge_mm = catalog_info(catalog)["gauge_mm"]
         self.mode = mode
         self.family = family
         self.title = title
@@ -91,7 +92,10 @@ class Layout:
 
     @property
     def inventory(self):
-        return Counter(piece.part.code for piece in self.pieces)
+        return Counter(code for piece in self.pieces for code in piece.part.component_codes)
+
+    def spacing(self, group, radius):
+        return spacing(group, radius, self.gauge_mm)
 
     @property
     def total_track_length_mm(self):
@@ -232,7 +236,7 @@ def _forward_loop_return(layout, loops):
 def _intersections(layout):
     lines, owners = [], []
     for i, piece in enumerate(layout.pieces):
-        for line in piece.lines.values():
+        for line in piece.rail_lines:
             lines.append(line)
             owners.append(i)
     allowed = {}
@@ -263,7 +267,7 @@ def _route_pair(layout, a, b, group):
     l1, l2 = layout.line_for_track(first), layout.line_for_track(second)
     common = {m.piece for m in first.moves} & {m.piece for m in second.moves}
     common = {i for i in common if layout.pieces[i].part.kind != "buffer"}
-    group_spacing = spacing(group, min(
+    group_spacing = layout.spacing(group, min(
         layout.pieces[m.piece].part.radius for m in first.moves + second.moves))
     ds, samples = _points(l1)
     close = shapely.distance(samples, l2) < group_spacing - 0.01
@@ -313,7 +317,7 @@ def _clearance(layout, cfg):
         lines_b = [layout.line(move) for move in b.moves]
         radii_a = [layout.pieces[move.piece].part.radius for move in a.moves]
         radii_b = [layout.pieces[move.piece].part.radius for move in b.moves]
-        limit = spacing(cfg.vehicle_group, min(radii_a + radii_b))
+        limit = layout.spacing(cfg.vehicle_group, min(radii_a + radii_b))
         for i, j in STRtree(lines_b).query(lines_a, predicate="dwithin", distance=limit).T:
             m, n = a.moves[i], b.moves[j]
             if m.piece == n.piece:
@@ -323,7 +327,7 @@ def _clearance(layout, cfg):
                 if len(keys) != 2 or any(keys == set(conflict) for conflict in part.data.get("route_conflicts", [])):
                     return "continuous routes conflict at pointwork"
             radius = min(radii_a[i], radii_b[j])
-            if lines_a[i].distance(lines_b[j]) < spacing(cfg.vehicle_group, radius) - 0.01:
+            if lines_a[i].distance(lines_b[j]) < layout.spacing(cfg.vehicle_group, radius) - 0.01:
                 return "parallel curve clearance for selected rolling stock"
     for i, track in enumerate(layout.tracks):
         if track.kind == "loop":
@@ -357,7 +361,7 @@ def _clearance(layout, cfg):
             leg = parent.moves[start:end+1] if start <= end else parent.moves[start:] + parent.moves[:end+1]
             main_line = layout.line_for_track(Track("", leg, "leg"))
             ms, mp = _points(main_line)
-            main_usable = _usable(ms, shapely.distance(mp, line) < spacing(cfg.vehicle_group, min(
+            main_usable = _usable(ms, shapely.distance(mp, line) < layout.spacing(cfg.vehicle_group, min(
                 layout.pieces[m.piece].part.radius for m in leg + track.moves)) - 0.01)
             layout.lengths["station_main"] = main_usable
             layout.lengths["passing_lap"] = (layout.length_for_track(parent)
@@ -399,7 +403,7 @@ def _station_usable(layout, group):
         samples = shapely.points(dx*(start + ds) - dy*offset, dy*(start + ds) + dx*offset)
         for other, line in enumerate(lines):
             if index != other:
-                limit = spacing(group, min(radii[index], radii[other]))
+                limit = layout.spacing(group, min(radii[index], radii[other]))
                 fouled |= shapely.distance(samples, line) < limit - 0.01
     return _usable(ds, fouled)
 
@@ -426,8 +430,10 @@ def validate(layout, cfg):
     if turnouts > cfg.max_turnouts:
         return f"maximum turnout count of {cfg.max_turnouts}"
     running_pieces = {move.piece for track in layout.tracks if track.kind != "spur" for move in track.moves}
-    if any(piece.part.radius < min_radius(cfg.vehicle_group)
-           or (piece.part.radius == 267 and index in running_pieces)
+    minimum = min_radius(cfg.vehicle_group, layout.gauge_mm)
+    siding_only = track_profile(layout.catalog).siding_only_radius
+    if any(piece.part.radius < minimum
+           or (piece.part.radius == siding_only and index in running_pieces)
            for index, piece in enumerate(layout.pieces)):
         return "minimum curve radius for selected rolling stock"
     if not layout.fit(cfg):

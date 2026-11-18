@@ -12,6 +12,8 @@ import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
 
+from .geometry import TILLIG_SYSTEM, catalog_info
+
 logger = logging.getLogger(__name__)
 
 COLORS = {
@@ -73,9 +75,10 @@ def _drawing(layout, cfg, number, target):
     width, height = 3000, 2360
     image = Image.new("RGB", (width, height), PAPER)
     draw = ImageDraw.Draw(image)
+    system = catalog_info(layout.catalog)["system"].upper()
     draw.text((100, 68), layout.title, fill=INK, font=_font(72), stroke_width=1)
     draw.text((103, 160),
-              f"PLAN {number:02d}   |   {layout.mode.upper()}   |   TILLIG TT MODELLGLEIS   |   {cfg.width_cm:g} × {cfg.height_cm:g} CM",
+              f"PLAN {number:02d}   |   {layout.mode.upper()}   |   {system}   |   {cfg.width_cm:g} x {cfg.height_cm:g} CM",
               fill=SUBTLE, font=_font(28))
     draw.line((100, 225, width-100, 225), fill=GRID, width=3)
 
@@ -107,6 +110,9 @@ def _drawing(layout, cfg, number, target):
             coords = [px(x, y) for x, y in line.coords]
             color = colors.get((i, route), COLORS["point"])
             tracks.append((coords, color))
+        if piece.part.mounted_track:
+            far = piece.rail_lines[0].coords[-1]
+            tracks.append(([px(*piece.stop.xy), px(*far)], COLORS["spur"]))
     for coords, color in tracks:
         draw.line(coords, fill="#d4dfdd", width=max(7, round(14*scale)), joint="curve")
     for coords, color in tracks:
@@ -145,7 +151,8 @@ def _drawing(layout, cfg, number, target):
     font = _font(20 if len(labels) > 60 else 23)
     pending = []
     for i, piece, (x,y), normal, _ in sorted(labels, key=lambda item: item[-1]):
-        label = f"{i+1:02d}  {piece.part.code}"
+        codes = " + ".join(reversed(piece.part.component_codes))
+        label = f"{i+1:02d}  {codes}"
         w = draw.textlength(label, font=font)/2 + 5
         h = 13
         bounds = (90 + w, 255 + h, width - 90 - w, 1910 - h)
@@ -183,7 +190,7 @@ def _drawing(layout, cfg, number, target):
         x = 103 + index * 325
         draw.line((x, footer+49, x+48, footer+49), fill=COLORS[key], width=9)
         draw.text((x+62, footer+49), label, anchor="lm", fill=INK, font=_font(27))
-    draw.text((width-103, footer+49), "Labels show piece ID and Tillig SKU", anchor="rm", fill=SUBTLE, font=_font(25))
+    draw.text((width-103, footer+49), "Labels show placement ID and part SKUs", anchor="rm", fill=SUBTLE, font=_font(25))
     bar = min(grid*2, cfg.width / 4)
     left = width - 105 - bar*scale
     draw.line((left, footer+114, width-105, footer+114), width=4, fill=INK)
@@ -214,7 +221,7 @@ def _drawing(layout, cfg, number, target):
     instructions_y = footer + 167 + 25 * (len(detail_rows) - 1)
     for i, row in enumerate(textwrap.wrap(layout.instructions, 122)):
         draw.text((103, instructions_y+i*35), row, fill=SUBTLE, font=_font(29))
-    draw.text((103, height-68), "Grid in centimetres   •   Board origin at upper left   •   Placement coordinates in the companion JSON",
+    draw.text((103, height-68), "Grid in centimetres   |   Board origin at upper left   |   Placement coordinates in the companion JSON",
               fill=SUBTLE, font=_font(24))
     image.save(target, format="JPEG", quality=94, subsampling=0, dpi=(300, 300))
 
@@ -233,10 +240,12 @@ def _shopping(layout, target):
     drives = {}
     with target.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(("category", "tillig_code", "quantity_pieces", "name_en", "name_pl", "product_url"))
+        sku_column = "tillig_code" if catalog_info(layout.catalog)["system"] == TILLIG_SYSTEM else "part_code"
+        writer.writerow(("category", sku_column, "quantity_pieces", "name_en", "name_pl", "product_url"))
         for code, quantity in sorted(layout.inventory.items()):
             data = layout.catalog[code].data
-            writer.writerow(("track", code, quantity, data["name_en"], data["name_pl"], data["product_url"]))
+            category = "buffer_stop" if "mount_track" in data else "track"
+            writer.writerow((category, code, quantity, data["name_en"], data["name_pl"], data["product_url"]))
             if drive := data.get("point_drive"):
                 extras[drive["code"]] += quantity * drive["quantity"]
                 drives[drive["code"]] = drive["product_url"]
@@ -246,23 +255,37 @@ def _shopping(layout, target):
     return extras
 
 
-def write_run(layouts, rejected, cfg, directory: Path):
+def write_run(layouts, rejected, cfg, directory: Path, *, catalog=None):
     # Build in a sibling directory and publish only when all exports succeed.
     from tempfile import TemporaryDirectory
     directory = directory.resolve()
     if directory.exists():
         raise ValueError(f"Output already exists at {directory}. Choose a new --output directory.")
     directory.parent.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(dir=directory.parent, prefix=".tt-layouts-") as tmp:
+    if catalog is None and layouts:
+        catalog = layouts[0].catalog
+    with TemporaryDirectory(dir=directory.parent, prefix=".railroad-layouts-") as tmp:
         work = Path(tmp) / "plans"
         work.mkdir()
-        _write_outputs(layouts, rejected, cfg, work)
+        _write_outputs(layouts, rejected, cfg, work, catalog_info(catalog))
         # Rename within the same filesystem. The enclosing temporary directory
         # also clears intermediate files on export errors.
         work.rename(directory)
 
 
-def _write_outputs(layouts, rejected, cfg, directory):
+def _placement(piece, number):
+    track = piece.part.mounted_track
+    data = dict(id=number, code=track.code if track else piece.part.code, origin=_point(piece.origin),
+                reflected_curve=piece.mirror == -1,
+                connectors={name: _point(pose) for name, pose in piece.ports.items()})
+    if piece.stop:
+        data["buffer_stop"] = _point(piece.stop)
+        if track:
+            data["buffer_stop"]["code"] = piece.part.code
+    return data
+
+
+def _write_outputs(layouts, rejected, cfg, directory, catalog):
     all_drawings = directory / "all"
     all_drawings.mkdir()
     rows = []
@@ -294,18 +317,16 @@ def _write_outputs(layouts, rejected, cfg, directory):
                 layout.lengths[layout.tracks[i].name] > 0 for i in layout.interior_tracks)
         rows.append(row)
         _write_json(folder/"placement.json", dict(row,
+                    catalog=catalog,
                     board_mm=[cfg.width, cfg.height],
                     axes="Origin at upper left, X right, Y down, headings clockwise from X",
-                    parts=[{"id":i+1, "code":p.part.code, "origin":_point(p.origin), "reflected_curve":p.mirror==-1,
-                            "connectors":{name:_point(q) for name,q in p.ports.items()},
-                            **({"buffer_stop":_point(p.stop)} if p.stop else {})}
-                           for i,p in enumerate(layout.pieces)],
+                    parts=[_placement(piece, number) for number, piece in enumerate(layout.pieces, 1)],
                     routes=[{"name":t.name, "kind":t.kind,
                              "moves":[[m.piece+1,m.entry,m.exit] for m in t.moves]}
                             for t in layout.tracks], joints=joints))
-    _write_json(directory/"run.json", dict(config=asdict(cfg), generated=len(rows),
+    _write_json(directory/"run.json", dict(catalog=catalog, config=asdict(cfg), generated=len(rows),
                 shortfall=cfg.count-len(rows), rejections=dict(rejected), layouts=rows))
-    lines = ["# Tillig TT track plans", "",
+    lines = [f"# {catalog['system']} track plans", "",
              f"{len(rows)} of {cfg.count} plans for a {cfg.width_cm:g} × {cfg.height_cm:g} cm board. "
              f"DCC, vehicle group {cfg.vehicle_group}, target train length {cfg.train_length_cm:g} cm.", ""]
     if len(rows) < cfg.count:

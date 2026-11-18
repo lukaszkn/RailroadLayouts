@@ -2,12 +2,17 @@
 
 from collections import defaultdict
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cached_property
 from math import ceil, copysign, cos, fsum, hypot, inf, isfinite, radians, sin
 from pathlib import Path
 
 from shapely.geometry import LineString
+
+from .profiles import ROCO, TILLIG
+
+TILLIG_SYSTEM = "Tillig TT Modellgleis"
+TILLIG_INFO = dict(system=TILLIG_SYSTEM, scale="1:120", gauge_mm=12, rail_height_mm=2.07)
 
 
 @dataclass(frozen=True)
@@ -75,10 +80,17 @@ class Part:
     ports: dict[str, Pose]
     routes: dict[str, Route]
     stop: Pose | None
+    mounted_track: "Part | None" = None
 
     @property
     def kind(self):
         return self.data["kind"]
+
+    @property
+    def component_codes(self):
+        if self.mounted_track:
+            return self.code, self.mounted_track.code
+        return (self.code,)
 
     @cached_property
     def radius(self):
@@ -89,6 +101,8 @@ class Part:
 
     @cached_property
     def track_length_mm(self):
+        if self.mounted_track:
+            return self.mounted_track.track_length_mm
         length = fsum(route.length for route in self.routes.values())
         if len(self.routes) < 2:
             return length
@@ -126,11 +140,35 @@ class Part:
         return length
 
 
+class Catalog(dict):
+    """Part lookup with the metadata shared by every piece in a run."""
+
+    def __init__(self, parts, info):
+        super().__init__(parts)
+        self.info = info
+
+    def copy(self):
+        return Catalog(self, self.info.copy())
+
+
+def catalog_info(catalog):
+    return getattr(catalog, "info", TILLIG_INFO)
+
+
+def track_profile(catalog):
+    return ROCO if catalog_info(catalog)["gauge_mm"] == 16.5 else TILLIG
+
+
 def load_catalog(path: Path):
     raw = json.loads(path.read_text(encoding="utf-8"))
-    if raw["gauge_mm"] != 12 or raw["rail_height_mm"] != 2.07:
-        raise ValueError("Expected the 12 mm gauge Tillig TT Modellgleis catalog")
-    catalog = {}
+    info = {key: raw[key] for key in TILLIG_INFO}
+    if (info["scale"], info["gauge_mm"]) not in (("1:120", 12), ("1:87", 16.5)):
+        raise ValueError("Supported profiles are 1:120 TT (12 mm) and 1:87 H0 (16.5 mm)")
+    system, height = info["system"], info["rail_height_mm"]
+    if (not isinstance(system, str) or not system.strip() or type(height) not in (int, float)
+            or not isfinite(height) or height <= 0):
+        raise ValueError("Catalog needs a system name and a positive rail height")
+    catalog = Catalog({}, info)
     for code, data in raw["parts"].items():
         price = data.get("unit_price_eur_cents")
         if price is not None and (type(price) is not int or price < 0):
@@ -151,12 +189,28 @@ def load_catalog(path: Path):
             if hypot(p.x - q.x, p.y - q.y) > 0.00001 or abs(angle_delta(p.heading, q.heading)) > 0.00001:
                 raise ValueError(f"Centerline disagrees with connector for {code} {a}-{b}")
             routes[f"{a}-{b}"] = Route(a, b, segments)
-        if data["kind"] != "reference" and not routes:
+        if data["kind"] != "reference" and not routes and "mount_track" not in data:
             raise ValueError(f"Missing geometry for {code}")
         if any(a not in routes or b not in routes for a, b in data.get("route_conflicts", [])):
             raise ValueError(f"Unknown conflicting route for {code}")
         catalog[code] = Part(code, data, ports, routes, stop)
+    for code, part in catalog.items():
+        if "mount_track" in part.data:
+            catalog[code] = _mount_buffer(part, catalog)
     return catalog
+
+
+def _mount_buffer(part, catalog):
+    track = catalog.get(part.data["mount_track"])
+    setback = part.data["stop_setback_mm"]
+    route = track.routes.get("a-b") if track and track.kind == "straight" else None
+    if (part.kind != "buffer" or part.ports or part.routes or part.stop or not route
+            or len(route.segments) != 1 or route.segments[0].radius or not 0 < setback < route.length):
+        raise ValueError(f"Invalid buffer mounting geometry for {part.code}")
+    start = track.ports["a"]
+    segment = Segment(length=route.length - setback)
+    return replace(part, ports={"a": start}, stop=segment.advance(start.turned(180)),
+                   routes={"a-stop": Route("a", "stop", (segment,))}, mounted_track=track)
 
 
 def _valid_segment(segment):
@@ -172,6 +226,7 @@ class Step:
     code: str
     route: str = "a-b"
     mirror: int = 1
+
 
 @dataclass(frozen=True)
 class Piece:
@@ -206,9 +261,16 @@ class Piece:
 
     @cached_property
     def bounds(self):
-        bounds = [line.bounds for line in self.lines.values()]
+        bounds = [line.bounds for line in self.rail_lines]
         return (min(b[0] for b in bounds), min(b[1] for b in bounds),
                 max(b[2] for b in bounds), max(b[3] for b in bounds))
+
+    @cached_property
+    def rail_lines(self):
+        if self.part.mounted_track:
+            far = self.origin.local(self.part.mounted_track.ports["b"])
+            return (LineString((self.ports["a"].xy, far.xy)),)
+        return tuple(self.lines.values())
 
 
 def align(part, connector, joint, mirror=1):
@@ -232,18 +294,25 @@ def joint_fits(a, b):
             and abs(angle) <= 0.100001)
 
 
-def min_radius(group):
-    return {"A": 258, "B": 300, "C": 360}[group]
+def min_radius(group, gauge_mm=12):
+    return {"A": 21.5, "B": 25, "C": 30}[group] * gauge_mm
 
 
-def spacing(group, radius):
-    # NEM 112, page 2. Interpolation is between supported TT values.
-    rows = {
+def spacing(group, radius, gauge_mm=12):
+    # NEM 112, page 2. Use the station spacing as the straight-track floor.
+    tt = {
         "A": [(250, 40), (275, 39), (300, 38), (325, 37), (350, 36), (400, 35), (450, 34)],
         "B": [(300, 42), (325, 41), (350, 40), (400, 38), (450, 37), (500, 36), (550, 35), (600, 34)],
         "C": [(350, 43), (400, 41), (450, 40), (500, 38), (550, 37), (600, 36), (700, 35), (800, 34)],
-    }[group]
+    }
+    h0 = {
+        "A": [(350, 55), (400, 53), (450, 51)],
+        "B": [(400, 59), (450, 57), (500, 55), (550, 53), (600, 52)],
+        "C": [(450, 61), (500, 59), (550, 57), (600, 55), (700, 52)],
+    }
+    table, floor = (h0, 52) if gauge_mm == 16.5 else (tt, 38)
+    rows = table[group]
     for (r0, d0), (r1, d1) in zip(rows, rows[1:]):
         if radius <= r1:
-            return max(38, d0 + (d1 - d0) * (max(radius, r0) - r0) / (r1 - r0))
-    return 38.0
+            return max(floor, d0 + (d1 - d0) * (max(radius, r0) - r0) / (r1 - r0))
+    return float(floor)

@@ -325,8 +325,7 @@ class LayoutTests(unittest.TestCase):
                         read_config(path, self.catalog)
 
     def test_four_track_station_with_curved_yard_and_rotated_board(self):
-        cfg = read_config(ROOT / "layout.station.json", self.catalog,
-                          {"width_cm": 120, "height_cm": 160, "min_station_tracks": 4, "count": 1})
+        cfg = self.station_config(width_cm=120, height_cm=160, min_station_tracks=4)
         plans, rejected = generate(self.catalog, cfg)
         plan, = plans
         station = [plan.tracks[i] for i in plan.station_tracks]
@@ -354,9 +353,8 @@ class LayoutTests(unittest.TestCase):
                          "configured train or station length exceeds the shared clear station straight")
 
     def test_three_track_station_respects_yard_budget_with_balanced_ranking(self):
-        cfg = read_config(ROOT / "layout.station.json", self.catalog,
-                          {"mode": "mixed", "strategy": "balanced", "max_station_tracks": 3,
-                           "max_turnouts": 8, "count": 1})
+        cfg = self.station_config(mode="mixed", strategy="balanced", min_station_tracks=3,
+                                  max_station_tracks=3, max_turnouts=8)
         plans, _ = generate(self.catalog, cfg)
         plan, = plans
         self.assertEqual(plan.mode, "double")
@@ -366,6 +364,16 @@ class LayoutTests(unittest.TestCase):
         plans, rejected = generate(self.catalog, replace(cfg, max_turnouts=7))
         self.assertEqual(plans, [])
         self.assertTrue(rejected)
+
+    def station_config(self, **changes):
+        return replace(self.config_for(
+            mode="double", strategy="longest_tracks", count=1, edge_margin_mm=55,
+            require_forward_loop_return=True, min_turnouts=3, max_turnouts=10,
+            min_station_tracks=3, max_station_tracks=4, min_interior_sidings=2,
+            interior_style="curved_yard",
+            parts={"83212": Limit(enabled=False), "83300": Limit(enabled=False),
+                   "83332": Limit(enabled=True)},
+        ), **changes)
 
     def test_mode_mix_and_inventory(self):
         self.assertTrue(self.config.require_connected_tracks)
